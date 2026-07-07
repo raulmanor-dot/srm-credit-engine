@@ -107,14 +107,17 @@ Implementado neste commit:
 - [x] Motor de precificação completo (`PricingStrategy`, as duas
       implementações, `PricingStrategyResolver`, `TermCalculator`,
       `FractionalPower`)
+- [x] Camada de aplicação mínima: `SimulationController` (`POST
+      /simulations`), `SimulationService`, `GlobalExceptionHandler`
+- [x] Testes unitários do motor de precificação (10 testes, sem Spring
+      context nem banco — `TermCalculator`, as duas Strategies e o
+      `PricingStrategyResolver`)
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Testes automatizados (unitários do motor de precificação; integração
-      com Testcontainers)
-- [ ] Camada de aplicação: `SimulationController` (`POST /simulations`),
-      controllers de CRUD (`Receivable`, `Assignor`, `Currency`), controller
-      de liquidação, `GlobalExceptionHandler`
+- [ ] Testes de integração com Testcontainers (Postgres real)
+- [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`), controller
+      de liquidação
 - [ ] `ReportController` / `ReportRepository` (caminho paralelo, SQL nativo)
 - [ ] Serviço de liquidação (conversão cambial + persistência de auditoria +
       decisão sobre transação em lote vs item a item)
@@ -130,12 +133,13 @@ Ainda não há Docker Compose nem banco configurado. Por enquanto:
 
 ```bash
 cd backend
-./gradlew build
+./gradlew test
 ```
 
-Isso deve compilar e (quando os testes existirem) rodá-los. A aplicação não
-sobe ainda de ponta a ponta porque depende de um PostgreSQL — isso entra na
-próxima fase junto com o `docker-compose.yml`.
+Isso compila e roda os 10 testes unitários do motor de precificação (sem
+Spring context nem banco). A aplicação ainda não sobe de ponta a ponta porque
+depende de um PostgreSQL — isso entra na próxima fase junto com o
+`docker-compose.yml`.
 
 ## Decisões de arquitetura (ADRs)
 
