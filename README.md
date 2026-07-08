@@ -149,6 +149,15 @@ Pendente (próximas fases, não implementado ainda):
 
 ## Rodando localmente
 
+### Configuração inicial (uma vez, após clonar)
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Ativa os git hooks do projeto (`commit-msg` valida Conventional Commits,
+`pre-push` roda os testes unitários) — ver [Estratégia de Git](#estratégia-de-git).
+
 ### Via Docker Compose (aplicação completa)
 
 Requer apenas Docker. Sobe Postgres e a aplicação (build multi-stage do
@@ -201,6 +210,46 @@ abrir a 3ª conexão JDBC em sequência) — **cada teste individualmente passa
 de forma consistente** (verificado repetidas vezes isolado via `--tests`).
 Em CI real (GitHub Actions, Linux nativo, Docker sem essa camada de
 compatibilidade) esse problema não é esperado.
+
+## Estratégia de Git
+
+Fluxo adotado: **GitHub Flow** (branches curtas de feature a partir da
+`main`, PR, merge, deploy contínuo da `main`) — não Git Flow, porque não há
+múltiplas versões em produção simultâneas nem necessidade de branches
+`develop`/`release` para esse projeto; a complexidade extra do Git Flow não
+se paga aqui.
+
+- **Uma branch por feature**, nomeada `feature/<assunto>` (ex.:
+  `feature/settlement-service`), nunca commit direto na `main`.
+- **Conventional Commits** obrigatório (`feat:`, `fix:`, `test:`, `docs:`,
+  `chore:`, `refactor:`...), reforçado por um git hook (`commit-msg`) que
+  rejeita mensagens fora do padrão.
+- **Pull Request por feature**, mesmo trabalhando sozinho — a descrição da
+  PR documenta o que foi feito (ver [PRs #1–#5](../../pulls?q=is%3Apr) no
+  repositório).
+- **Merge via rebase, não merge commit**: cada branch de feature tem
+  commits organizados (squash de fixups já feito antes do PR) e é
+  integrada à `main` com `git rebase`/"Rebase and merge" — resultado é um
+  fast-forward, então a `main` fica **100% linear, sem bolhas de merge**.
+  Isso é o que a avaliação chama de "Histórico Limpo" (Pleno) e
+  "Interactive Rebase... mantendo uma linearidade profissional" (Sênior):
+  aqui não é só teoria, é a estratégia de merge configurada de verdade no
+  repositório.
+- **Git hooks** (`.githooks/`, versionados — equivalente ao que o Husky faz
+  para projetos Node, mas nativo do Git): rode `git config core.hooksPath
+  .githooks` uma vez após clonar (setup manual porque Git não versiona
+  hooks nem os instala sozinho a partir do clone).
+  - `commit-msg`: valida Conventional Commits antes de aceitar o commit.
+  - `pre-push`: roda `./gradlew unitTest` (subconjunto rápido, sem
+    Testcontainers/Docker — ver `backend/build.gradle`) antes de qualquer
+    `git push`, para nunca empurrar um commit que quebra os testes
+    unitários.
+- **Tags SemVer** marcando marcos de entrega (`git tag -l`):
+  - `v0.1.0` — motor de precificação + endpoint de simulação testado.
+  - `v0.2.0` — liquidação completa (individual, lote, extrato).
+  - `v0.3.0` — dockerizado (Docker Compose local).
+  - `v1.0.0` será a tag da entrega final, quando observabilidade,
+    resiliência, frontend e CI/CD estiverem completos.
 
 ## Decisões de arquitetura (ADRs)
 

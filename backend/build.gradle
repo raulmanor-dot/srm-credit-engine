@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.srmasset'
-version = '0.1.0'
+version = '0.3.0'
 
 // Override da versão de Testcontainers gerenciada pelo BOM do Spring Boot
 // 3.3.4 (que traz 1.19.8), via a propriedade que io.spring.dependency-management
@@ -49,4 +49,11 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Subconjunto rápido (sem Testcontainers/Docker) usado pelo git hook de
+// pre-push — precisa rodar em segundos e sem dependências externas.
+tasks.register('unitTest', Test) {
+	useJUnitPlatform()
+	exclude '**/integration/**'
 }
