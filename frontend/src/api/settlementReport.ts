@@ -6,6 +6,7 @@ export interface SettlementReportFilters {
 	fromDate?: string;
 	toDate?: string;
 	assignorId?: number;
+	paymentCurrencyCode?: string;
 }
 
 export const SETTLEMENT_REPORT_PAGE_SIZE = 20;
@@ -22,6 +23,7 @@ export function useSettlementReport(page: number, filters: SettlementReportFilte
 			if (filters.fromDate) params.set('fromDate', filters.fromDate);
 			if (filters.toDate) params.set('toDate', filters.toDate);
 			if (filters.assignorId) params.set('assignorId', String(filters.assignorId));
+			if (filters.paymentCurrencyCode) params.set('paymentCurrencyCode', filters.paymentCurrencyCode);
 			return httpClient.get<SettlementStatementRow[]>(`/reports/settlements?${params.toString()}`);
 		},
 		placeholderData: keepPreviousData,

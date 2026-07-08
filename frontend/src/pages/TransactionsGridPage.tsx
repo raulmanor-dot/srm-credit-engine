@@ -3,10 +3,11 @@ import { ActionIcon, Container, Group, Select, Table, Text, Title } from '@manti
 import { DateInput } from '@mantine/dates';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useAssignors } from '../api/assignors';
+import { useCurrencies } from '../api/currencies';
 import { SETTLEMENT_REPORT_PAGE_SIZE, useSettlementReport } from '../api/settlementReport';
 
 // "Grid de Transações": histórico de liquidações com paginação server-side
-// (GET /reports/settlements?page=&size=) e filtros dinâmicos (data, cedente).
+// (GET /reports/settlements?page=&size=) e filtros dinâmicos (data, cedente, moeda).
 // O backend não expõe total de páginas (decisão deliberada, ver README) —
 // "próxima página" fica habilitada enquanto a página atual vier cheia.
 export function TransactionsGridPage() {
@@ -14,15 +15,19 @@ export function TransactionsGridPage() {
 	const [fromDate, setFromDate] = useState<string | null>(null);
 	const [toDate, setToDate] = useState<string | null>(null);
 	const [assignorId, setAssignorId] = useState<string | null>(null);
+	const [paymentCurrencyCode, setPaymentCurrencyCode] = useState<string | null>(null);
 
 	const { data: assignors } = useAssignors();
+	const { data: currencies } = useCurrencies();
 	const { data: rows, isFetching } = useSettlementReport(page, {
 		fromDate: fromDate ?? undefined,
 		toDate: toDate ?? undefined,
 		assignorId: assignorId ? Number(assignorId) : undefined,
+		paymentCurrencyCode: paymentCurrencyCode ?? undefined,
 	});
 
 	const assignorOptions = (assignors ?? []).map((a) => ({ value: String(a.id), label: a.name }));
+	const currencyOptions = (currencies ?? []).map((c) => ({ value: c.code, label: c.code }));
 	const hasNextPage = (rows?.length ?? 0) === SETTLEMENT_REPORT_PAGE_SIZE;
 
 	function resetToFirstPage<T>(setter: (value: T) => void) {
@@ -49,6 +54,14 @@ export function TransactionsGridPage() {
 					onChange={resetToFirstPage(setAssignorId)}
 					clearable
 					searchable
+				/>
+				<Select
+					label="Moeda de pagamento"
+					placeholder="Todas"
+					data={currencyOptions}
+					value={paymentCurrencyCode}
+					onChange={resetToFirstPage(setPaymentCurrencyCode)}
+					clearable
 				/>
 			</Group>
 
