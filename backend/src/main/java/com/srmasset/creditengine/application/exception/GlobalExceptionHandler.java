@@ -7,6 +7,8 @@ import com.srmasset.creditengine.domain.exception.ReceivableNotFoundException;
 import com.srmasset.creditengine.domain.exception.ReceivableNotPendingException;
 import com.srmasset.creditengine.domain.exception.ReceivableTypeNotFoundException;
 import com.srmasset.creditengine.domain.exception.UnsupportedReceivableTypeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({
         ReceivableNotFoundException.class,
@@ -69,6 +73,15 @@ public class GlobalExceptionHandler {
                                 "This operation conflicts with existing data"));
     }
 
+    // 422: pré-condição de domínio violada (ex.: simular recebível já vencido —
+    // TermCalculator rejeita dueDate anterior à data de referência). A requisição é
+    // sintaticamente válida, mas o estado do negócio não permite a operação.
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleDomainPrecondition(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ErrorResponse.of(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message =
@@ -82,5 +95,17 @@ public class GlobalExceptionHandler {
                         .orElse("Validation error");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, message));
+    }
+
+    // 500: rede de segurança — nada de stack trace nem detalhes internos no corpo da
+    // resposta; o erro completo vai para o log estruturado (com requestId no MDC).
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
+        log.error("Unhandled exception", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(
+                        ErrorResponse.of(
+                                HttpStatus.INTERNAL_SERVER_ERROR,
+                                "An unexpected error occurred. Please contact support."));
     }
 }
