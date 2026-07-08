@@ -28,8 +28,8 @@ espera de nível Sênior nesta avaliação.
   Compose (app + Postgres, healthchecks).
 - **Precisão numérica**: `BigDecimal` + [big-math](https://github.com/eobermuhlner/big-math)
   para potência fracionária (ver [ADR 0002](docs/adr/0002-bigdecimal-precision-and-fractional-power.md)).
-- **Frontend** (planejado): React + TypeScript + Vite, TanStack Query, React
-  Hook Form + Zod.
+- **Frontend**: React + TypeScript + Vite, Mantine (UI + `@mantine/form`),
+  TanStack Query, React Router.
 - **Observabilidade** (planejado): Logback + logstash-encoder, Micrometer +
   Prometheus + Grafana.
 - **Resiliência** (planejado): Resilience4j.
@@ -116,6 +116,54 @@ diferente do atalho deliberado do `ReportController`.
   sem handler novo: `DataIntegrityViolationException` (constraint `UNIQUE`)
   e `ReceivableNotPendingException` já eram tratados antes desta fase.
 
+## Frontend
+
+`frontend/` (Vite + React + TypeScript). Escopo desta primeira fase segue
+literalmente o item 4 do enunciado ("Escopo Técnico — Frontend"), não o
+CRUD completo do backend:
+
+- **Painel do Operador** (`/`, `OperatorPanelPage`): o operador seleciona um
+  recebível `PENDING` (`GET /receivables?status=PENDING`) e ajusta a taxa
+  base / data de referência; o valor líquido é recalculado **em tempo real**
+  chamando `POST /simulations` com debounce (400ms, `@mantine/hooks`
+  `useDebouncedValue`). O cálculo em si nunca é replicado em TS — o
+  comentário original do `SimulationController` já previa exatamente este
+  uso ("o painel de simulação chama este endpoint com debounce").
+- **Grid de Transações** (`/transacoes`, `TransactionsGridPage`): histórico
+  de liquidações via `GET /reports/settlements`, com **paginação
+  server-side** (`page`/`size`) e filtros dinâmicos (data de/até, cedente).
+  O backend não expõe total de páginas (decisão deliberada, ver
+  `SettlementReportRepository`) — "próxima página" é habilitada
+  heuristicamente enquanto a página atual vier cheia (`size` itens).
+- **Arquitetura**: `src/api/*` isola toda chamada HTTP e cache
+  (TanStack Query) em hooks (`useReceivables`, `useSimulation`,
+  `useSettlementReport`...); `src/pages/*` só consome esses hooks e
+  renderiza — nenhuma lógica de negócio ou fetch inline em componente de
+  UI. Estado global de servidor fica no `QueryClient` (cache/refetch);
+  não há Redux/Zustand porque não há estado de UI compartilhado entre
+  páginas que justifique isso.
+- **UI**: Mantine (`@mantine/core`, `@mantine/dates`, `@mantine/form`) —
+  biblioteca de componentes pronta para reduzir tempo de setup, conforme
+  decisão explícita nesta fase (troca do React Hook Form + Zod
+  originalmente planejado, redundante com `@mantine/form`).
+- CRUD de cadastros (moedas/cedentes/recebíveis) já existe na API (ver
+  [Cadastros (CRUD)](#cadastros-crud)) mas não tem tela própria ainda —
+  ficou fora do escopo desta fase por não estar no item 4 do enunciado.
+
+### Rodando o frontend
+
+```bash
+cd frontend
+cp .env.example .env   # VITE_API_BASE_URL, default http://localhost:8080
+npm install
+npm run dev            # http://localhost:5173
+```
+
+Requer a API rodando (`docker compose up` na raiz — ver
+[Rodando localmente](#rodando-localmente)). CORS é liberado no backend só
+para a origem do frontend (`app.cors.allowed-origin`, default
+`http://localhost:5173`, ver `WebConfig`).
+
 ## Modelo de dados
 
 Migrations Flyway em `backend/src/main/resources/db/migration`:
@@ -177,14 +225,19 @@ Implementado neste commit:
 - [x] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`) — ver
       [Cadastros (CRUD)](#cadastros-crud): soft delete em `Currency`/
       `Assignor`, cancelamento por transição de estado em `Receivable`
+- [x] Frontend (React + TS + Vite + Mantine) — ver [Frontend](#frontend):
+      Painel do Operador (simulação em tempo real com debounce) e Grid de
+      Transações (extrato paginado server-side, filtros dinâmicos),
+      verificado ponta a ponta no navegador (Playwright headless)
 
 Pendente (próximas fases, não implementado ainda):
 
 - [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
 - [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
       Prometheus/Grafana no compose)
-- [ ] Frontend (React + TS + Vite)
 - [ ] CI/CD (GitHub Actions: lint, test, build)
+- [ ] Telas de cadastro (CRUD) no frontend — API já existe, sem UI própria
+      ainda (fora do escopo do item 4 do enunciado)
 
 ## Rodando localmente
 
