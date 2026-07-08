@@ -543,3 +543,11 @@ se paga aqui.
 
 Ver [`docs/adr/`](docs/adr/). Cada decisão não-óbvia do motor de precificação
 e do modelo de dados tem uma ADR curta (contexto, decisão, consequências).
+
+## System Design em escala (nível Especialista/Staff)
+
+- [Design de alta escala — 1M tx/min](docs/high-scale-design.md): cache de câmbio,
+  read replicas, sharding por cedente, idempotência e rate limiting.
+- [Proposta de arquitetura orientada a eventos (EDA)](docs/eda-proposal.md): outbox
+  transacional, eventos (`SettlementCompleted`, `FxRateUpdated`, etc.), garantias de
+  entrega e ordenação.
