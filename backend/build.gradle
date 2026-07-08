@@ -50,6 +50,12 @@ dependencies {
 	// Logs estruturados em JSON no stdout (perfil padrão/docker) — ver ADR 0007.
 	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 
+	// Documentação de API interativa (Swagger UI + OpenAPI 3), gerada a partir
+	// dos controllers e DTOs existentes — sem anotação manual de schema.
+	// Fixado em 2.6.0: versões 2.7+ do springdoc exigem Spring Framework 6.2
+	// (Spring Boot 3.4+), incompatível com o Boot 3.3.4 usado neste projeto.
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
