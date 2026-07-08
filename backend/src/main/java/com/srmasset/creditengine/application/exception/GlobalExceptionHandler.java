@@ -1,9 +1,11 @@
 package com.srmasset.creditengine.application.exception;
 
+import com.srmasset.creditengine.domain.exception.AssignorNotFoundException;
 import com.srmasset.creditengine.domain.exception.CurrencyNotFoundException;
 import com.srmasset.creditengine.domain.exception.ExchangeRateNotFoundException;
 import com.srmasset.creditengine.domain.exception.ReceivableNotFoundException;
 import com.srmasset.creditengine.domain.exception.ReceivableNotPendingException;
+import com.srmasset.creditengine.domain.exception.ReceivableTypeNotFoundException;
 import com.srmasset.creditengine.domain.exception.UnsupportedReceivableTypeException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -16,7 +18,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-	@ExceptionHandler({ReceivableNotFoundException.class, CurrencyNotFoundException.class})
+	@ExceptionHandler({
+		ReceivableNotFoundException.class,
+		CurrencyNotFoundException.class,
+		AssignorNotFoundException.class,
+		ReceivableTypeNotFoundException.class
+	})
 	public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(HttpStatus.NOT_FOUND, ex.getMessage()));
 	}
