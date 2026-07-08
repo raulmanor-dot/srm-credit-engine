@@ -381,12 +381,33 @@ Implementado neste commit:
       Testcontainers) e endpoints (`/reports/settlements`,
       `/receivables?status=PENDING`) conferidos manualmente.
 
+- [x] Lint/formatter do backend (Spotless + Google Java Format), preso à
+      task `test` — build quebra se o código não estiver formatado.
+- [x] Documentação interativa da API (Swagger UI / OpenAPI) — ver
+      [Rodando localmente](#rodando-localmente): `springdoc-openapi`, sem
+      anotação manual de schema nos controllers.
+- [x] Extrato de liquidação filtrável por período, cedente **e moeda de
+      pagamento** (item 3.5 do enunciado) — filtro de moeda adicionado no
+      backend (`SettlementReportRepository`) e no frontend (Grid de
+      Transações).
+- [x] Tratamento de exceção de domínio sem handler dedicado corrigido:
+      `IllegalArgumentException` (ex.: simular recebível já vencido) agora
+      responde 422 em vez de vazar um 500 com stack trace; handler
+      catch-all garante que nenhuma exceção não mapeada escape sem
+      sanitização.
+- [x] `AI_USAGE.md`, diagrama ER (`docs/diagrams/er-diagram.md`) e C4
+      contexto/containers (`docs/diagrams/c4-*.md`).
+- [x] System design em escala Especialista/Staff: 1M tx/min
+      (`docs/high-scale-design.md`) e proposta EDA (`docs/eda-proposal.md`)
+      — ver [System Design em escala](#system-design-em-escala-nível-especialistastaff).
+- [x] Simulação de gestão de crise (nível Especialista/Staff): bug crítico
+      de precificação mergeado e revertido via `git revert`, com guarda de
+      regressão adicionada — ver [docs/crisis-simulation.md](docs/crisis-simulation.md).
+
 Pendente (próximas fases, não implementado ainda):
 
 - [ ] Telas de cadastro (CRUD) no frontend — API já existe, sem UI própria
       ainda (fora do escopo do item 4 do enunciado)
-- [ ] Lint/formatter para o backend (Checkstyle ou Spotless) — não existe
-      ainda, ver [CI/CD](#cicd)
 
 ## Rodando localmente
 
