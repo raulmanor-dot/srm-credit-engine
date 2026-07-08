@@ -72,7 +72,7 @@ public class SettlementService {
 		BigDecimal fxRateUsed = null;
 		BigDecimal netValuePaymentCurrency = presentValueFaceCurrency;
 		if (!faceCurrency.getCode().equals(paymentCurrency.getCode())) {
-			fxRateUsed = exchangeRateService.findLatestRate(faceCurrency, paymentCurrency);
+			fxRateUsed = exchangeRateService.getCurrentRate(faceCurrency, paymentCurrency);
 			netValuePaymentCurrency = presentValueFaceCurrency.multiply(fxRateUsed, MathConstants.PRICING_CONTEXT);
 		}
 
