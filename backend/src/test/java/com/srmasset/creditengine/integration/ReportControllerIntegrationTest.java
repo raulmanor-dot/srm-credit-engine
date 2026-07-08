@@ -79,11 +79,26 @@ class ReportControllerIntegrationTest extends AbstractIntegrationTest {
         settlementService.settle(receivableB.getId(), "BRL", baseRate);
 
         List<SettlementStatementRow> onlyA =
-                settlementReportRepository.findStatements(null, null, assignorA.getId(), 0, 50);
+                settlementReportRepository.findStatements(
+                        null, null, assignorA.getId(), null, 0, 50);
 
         assertThat(onlyA)
                 .extracting(SettlementStatementRow::documentNumber)
                 .containsExactly("DOC-RPT-A");
         assertThat(onlyA.get(0).fxRateUsed()).isNull();
+
+        // filtro por moeda de pagamento, escopado ao cedente do teste (o banco também
+        // carrega a massa de demo da V8): liquidado em BRL aparece, em USD não.
+        List<SettlementStatementRow> brlOnly =
+                settlementReportRepository.findStatements(
+                        null, null, assignorA.getId(), "BRL", 0, 50);
+        assertThat(brlOnly)
+                .extracting(SettlementStatementRow::documentNumber)
+                .containsExactly("DOC-RPT-A");
+
+        List<SettlementStatementRow> usdOnly =
+                settlementReportRepository.findStatements(
+                        null, null, assignorA.getId(), "USD", 0, 50);
+        assertThat(usdOnly).isEmpty();
     }
 }

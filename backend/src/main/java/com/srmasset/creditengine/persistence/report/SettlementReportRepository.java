@@ -45,6 +45,7 @@ public class SettlementReportRepository {
 			WHERE (:fromDate::date IS NULL OR s.settled_at >= :fromDate::date)
 			  AND (:toDate::date IS NULL OR s.settled_at < (:toDate::date + INTERVAL '1 day')::timestamptz)
 			  AND (:assignorId::bigint IS NULL OR r.assignor_id = :assignorId::bigint)
+			  AND (:paymentCurrencyCode::varchar IS NULL OR pc.code = :paymentCurrencyCode::varchar)
 			ORDER BY s.settled_at DESC
 			LIMIT :limit OFFSET :offset
 			""";
@@ -56,7 +57,12 @@ public class SettlementReportRepository {
     }
 
     public List<SettlementStatementRow> findStatements(
-            LocalDate fromDate, LocalDate toDate, Long assignorId, int page, int size) {
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long assignorId,
+            String paymentCurrencyCode,
+            int page,
+            int size) {
         int pageSize = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
         int offset = Math.max(page, 0) * pageSize;
 
@@ -65,6 +71,7 @@ public class SettlementReportRepository {
                         .addValue("fromDate", fromDate, Types.DATE)
                         .addValue("toDate", toDate, Types.DATE)
                         .addValue("assignorId", assignorId, Types.BIGINT)
+                        .addValue("paymentCurrencyCode", paymentCurrencyCode, Types.VARCHAR)
                         .addValue("limit", pageSize)
                         .addValue("offset", offset);
 

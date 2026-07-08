@@ -34,8 +34,10 @@ public class ReportController {
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
             @RequestParam(required = false) Long assignorId,
+            @RequestParam(required = false) String paymentCurrencyCode,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return settlementReportRepository.findStatements(fromDate, toDate, assignorId, page, size);
+        return settlementReportRepository.findStatements(
+                fromDate, toDate, assignorId, paymentCurrencyCode, page, size);
     }
 }
