@@ -284,6 +284,7 @@ Migrations Flyway em `backend/src/main/resources/db/migration`:
 | V5 | `receivables` | `version` (optimistic lock) + `status` |
 | V6 | `settlements` | auditoria completa: taxa base, spread, câmbio, valores em ambas moedas |
 | V7 | seed | moedas BRL/USD, os dois tipos de recebível com seus spreads, 1 câmbio inicial |
+| V8 | seed demo | massa de demonstração: 10 cedentes, 45 recebíveis (30 `SETTLED`/10 `PENDING`/5 `CANCELED`), 30 liquidações (~30% cross-currency BRL↔USD) e 6 cotações históricas de câmbio — dá volume real para o Painel do Operador e a Grid de Transações sem depender de cadastro manual |
 
 Todos os valores monetários são `NUMERIC(19,6)`.
 
@@ -361,6 +362,16 @@ Implementado neste commit:
       publicadas assim que existe um `MeterRegistry`, sem código novo);
       Prometheus + Grafana no `docker-compose.yml`, com datasource e
       dashboard (`observability/grafana/`) já provisionados.
+
+- [x] Massa de dados de demonstração (`V8__seed_demo_data.sql`): 10 cedentes,
+      45 recebíveis nos três status, 30 liquidações (com conversão
+      cross-currency em ~30% delas) e histórico de câmbio USD/BRL — valores
+      calculados com a mesma fórmula do motor de precificação, datas
+      coerentes (nenhuma liquidação com data no futuro). Verificado
+      ponta a ponta: volume do Postgres resetado, stack recriada,
+      `./gradlew test` completo (migrations V1–V8 do zero via
+      Testcontainers) e endpoints (`/reports/settlements`,
+      `/receivables?status=PENDING`) conferidos manualmente.
 
 Pendente (próximas fases, não implementado ainda):
 
