@@ -1,0 +1,117 @@
+{
+  "uid": "srm-credit-engine",
+  "title": "SRM Credit Engine",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP request rate (by URI/status)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"srm-credit-engine\"}[1m])) by (uri, status)",
+          "legendFormat": "{{uri}} [{{status}}]"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "HTTP p95 latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"srm-credit-engine\"}[5m])) by (le, uri))",
+          "legendFormat": "{{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Liquidações por moeda (taxa)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(settlements_count_total{application=\"srm-credit-engine\"}[5m])) by (currency)",
+          "legendFormat": "{{currency}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Volume liquidado (taxa, por moeda)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(settlements_volume_sum{application=\"srm-credit-engine\"}[5m])) by (currency)",
+          "legendFormat": "{{currency}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Taxa de erro do provedor de câmbio (%)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(fx_provider_requests_total{application=\"srm-credit-engine\", outcome=\"fallback\"}[5m])) / sum(rate(fx_provider_requests_total{application=\"srm-credit-engine\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Circuit breaker (provedor de câmbio) — aberto?",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "FECHADO", "color": "green" } } },
+            { "type": "value", "options": { "1": { "text": "ABERTO", "color": "red" } } }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(resilience4j_circuitbreaker_state{name=\"exchange-rate-provider\", state=\"open\"})"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Retries do provedor de câmbio (por resultado)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(resilience4j_retry_calls_total{name=\"exchange-rate-provider\"}[5m])) by (kind)",
+          "legendFormat": "{{kind}}"
+        }
+      ]
+    }
+  ]
+}

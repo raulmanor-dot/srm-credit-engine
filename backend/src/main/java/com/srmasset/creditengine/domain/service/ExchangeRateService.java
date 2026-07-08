@@ -36,14 +36,17 @@ public class ExchangeRateService {
 	private final ExchangeRateRepository exchangeRateRepository;
 	private final ExchangeRateProvider exchangeRateProvider;
 	private final boolean providerEnabled;
+	private final ExchangeRateMetricsRecorder exchangeRateMetricsRecorder;
 
 	public ExchangeRateService(
 			ExchangeRateRepository exchangeRateRepository,
 			ExchangeRateProvider exchangeRateProvider,
-			@Value("${app.exchange-rate-provider.enabled:true}") boolean providerEnabled) {
+			@Value("${app.exchange-rate-provider.enabled:true}") boolean providerEnabled,
+			ExchangeRateMetricsRecorder exchangeRateMetricsRecorder) {
 		this.exchangeRateRepository = exchangeRateRepository;
 		this.exchangeRateProvider = exchangeRateProvider;
 		this.providerEnabled = providerEnabled;
+		this.exchangeRateMetricsRecorder = exchangeRateMetricsRecorder;
 	}
 
 	@Transactional
@@ -52,10 +55,12 @@ public class ExchangeRateService {
 			try {
 				BigDecimal freshRate = exchangeRateProvider.fetchRate(base.getCode(), quote.getCode());
 				exchangeRateRepository.save(new ExchangeRate(base, quote, freshRate, ExchangeRate.Source.MOCK_PROVIDER));
+				exchangeRateMetricsRecorder.recordOutcome("success");
 				return freshRate;
 			} catch (ExchangeRateProviderUnavailableException e) {
 				log.warn("FX provider unavailable for {}->{}, falling back to latest stored rate",
 						base.getCode(), quote.getCode(), e);
+				exchangeRateMetricsRecorder.recordOutcome("fallback");
 			}
 		}
 		return findLatestStoredRate(base, quote);

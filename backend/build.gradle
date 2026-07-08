@@ -41,6 +41,14 @@ dependencies {
 	// Potência fracionária de BigDecimal com precisão controlada (BigDecimal.pow só aceita expoente inteiro)
 	implementation 'ch.obermuhlner:big-math:2.3.2'
 
+	// Métricas técnicas + de negócio via Micrometer, expostas em /actuator/prometheus.
+	// Sua sola presença ativa também as métricas do Resilience4j (retry/circuit
+	// breaker), que já existiam mas não tinham um MeterRegistry para publicar — ver ADR 0007.
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
+	// Logs estruturados em JSON no stdout (perfil padrão/docker) — ver ADR 0007.
+	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
