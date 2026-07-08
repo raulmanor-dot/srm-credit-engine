@@ -46,9 +46,9 @@ class ChequePreDatadoStrategyTest {
 
         BigDecimal presentValue = strategy.calculatePresentValue(receivable, baseRate);
 
-        // taxa total = 1,0% (base) - 2,5% (spread) = -1,5% a.m.; prazo = 45/30 = 1,5 mes
-        // PV = 5000 / 0,985^1.5
-        BigDecimal onePlusI = new BigDecimal("0.985");
+        // taxa total = 1,0% (base) + 2,5% (spread) = 3,5% a.m.; prazo = 45/30 = 1,5 mes
+        // PV = 5000 / 1,035^1.5
+        BigDecimal onePlusI = new BigDecimal("1.035");
         double expectedDouble = 5000.0 / Math.pow(onePlusI.doubleValue(), 1.5);
         BigDecimal expected =
                 BigDecimal.valueOf(expectedDouble).setScale(2, RoundingMode.HALF_EVEN);
