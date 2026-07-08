@@ -85,6 +85,43 @@ class SimulationControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void returnsUnprocessableEntityWhenReceivableIsAlreadyOverdue() throws Exception {
+        Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
+        ReceivableType duplicata =
+                receivableTypeRepository
+                        .findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
+                        .orElseThrow();
+        Assignor assignor =
+                assignorRepository.save(new Assignor("Empresa Vencida", "99888777000155"));
+
+        LocalDate issueDate = LocalDate.of(2026, 1, 12);
+        LocalDate dueDate = LocalDate.of(2026, 4, 9);
+        Receivable receivable =
+                receivableRepository.save(
+                        new Receivable(
+                                assignor,
+                                duplicata,
+                                brl,
+                                new BigDecimal("5000.00"),
+                                "DOC-IT-OVERDUE",
+                                issueDate,
+                                dueDate));
+
+        // referenceDate posterior ao vencimento: o domínio rejeita e a resposta deve ser
+        // um 422 semântico, nunca um 500 vazando IllegalArgumentException.
+        SimulationRequest request =
+                new SimulationRequest(
+                        receivable.getId(), new BigDecimal("2.0"), LocalDate.of(2026, 7, 8));
+
+        mockMvc.perform(
+                        post("/simulations")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").value("dueDate must not be before referenceDate"));
+    }
+
+    @Test
     void returnsNotFoundForUnknownReceivable() throws Exception {
         SimulationRequest request =
                 new SimulationRequest(999999L, new BigDecimal("2.0"), LocalDate.now());
