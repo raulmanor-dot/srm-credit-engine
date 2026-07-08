@@ -34,7 +34,9 @@ espera de nível Sênior nesta avaliação.
   TanStack Query, React Router.
 - **Observabilidade** (planejado): Logback + logstash-encoder, Micrometer +
   Prometheus + Grafana.
-- **Resiliência** (planejado): Resilience4j.
+- **Resiliência**: Resilience4j (retry + circuit breaker) protegendo um
+  provedor de câmbio mock (`/mock-provider/rates`), com fallback para a
+  última taxa conhecida no banco — ver [ADR 0006](docs/adr/0006-exchange-rate-provider-resilience.md).
 - **CI/CD**: GitHub Actions (`.github/workflows/ci.yml`) — job `backend`
   (`./gradlew test` com Testcontainers) + job `frontend` (lint + build), ver
   [CI/CD](#cicd).
@@ -82,6 +84,46 @@ Decisões que evitam o erro clássico de ambiguidade em taxa mensal:
 
 - [ADR 0001](docs/adr/0001-day-count-convention.md) — convenção de contagem de prazo.
 - [ADR 0002](docs/adr/0002-bigdecimal-precision-and-fractional-power.md) — precisão numérica e potência fracionária.
+
+## Provedor de câmbio (mock) e resiliência
+
+Quando a liquidação precisa converter moeda, `ExchangeRateService` primeiro
+tenta uma cotação fresca de um provedor externo simulado dentro da própria
+aplicação — `GET /mock-provider/rates?base=USD&quote=BRL` — chamado via HTTP
+real (não um stub em memória), protegido por Resilience4j:
+
+```json
+{"base":"USD","quote":"BRL","rate":5.412345,"timestamp":"2026-07-08T10:00:00Z"}
+```
+
+Escada de degradação (ver [ADR 0006](docs/adr/0006-exchange-rate-provider-resilience.md)):
+
+1. Provedor responde → cotação persistida como nova linha append-only
+   (`source=MOCK_PROVIDER`) e usada na liquidação.
+2. Provedor falha (retries esgotados) ou circuito aberto → cai para a
+   última taxa conhecida no banco, com log de warning.
+3. Nunca existiu taxa para o par → `422` (comportamento pré-existente).
+
+A liquidação nunca trava esperando o provedor.
+
+| Propriedade | Default | Descrição |
+|---|---|---|
+| `app.exchange-rate-provider.enabled` | `true` | desliga o provedor inteiro (kill-switch) |
+| `app.exchange-rate-provider.base-url` | `http://localhost:${server.port}` | a app chama a si mesma |
+| `app.exchange-rate-provider.connect-timeout` / `.read-timeout` | `500ms` / `2s` | timeouts do `RestClient` |
+| `app.mock-provider.failure-rate` | `0.2` | probabilidade de retornar 503 (caos) |
+| `app.mock-provider.min/max-latency-ms` | `0` / `200` | latência artificial |
+| `app.mock-provider.jitter-percent` | `2.0` | variação aleatória sobre a taxa base |
+| `app.mock-provider.rates` | `USD-BRL: 5.40` | tabela de taxas base do mock |
+
+Retry (3 tentativas, backoff exponencial) e circuit breaker (janela de 10
+chamadas, abre com 50% de falha, 10s aberto) configurados em
+`resilience4j.*` (`application.yml`). Estado do circuito é observável em
+`GET /actuator/circuitbreakers`.
+
+Para ver o fallback em ação localmente: `FX_MOCK_FAILURE_RATE=1.0 docker
+compose up --build`, liquide um recebível cross-currency e observe o log
+`WARN` de fallback + o circuito abrindo em `/actuator/circuitbreakers`.
 
 ## Cadastros (CRUD)
 
@@ -255,10 +297,16 @@ Implementado neste commit:
 - [x] CI/CD (GitHub Actions) — ver [CI/CD](#cicd): job `backend`
       (`./gradlew test`, suíte completa) + job `frontend` (lint + typecheck
       + build), disparados em push/PR contra `main`
+- [x] Mock de provedor de câmbio + Resilience4j (retry/circuit
+      breaker/fallback) — ver [ADR 0006](docs/adr/0006-exchange-rate-provider-resilience.md).
+      Provedor mock in-process (`GET /mock-provider/rates`, caos
+      configurável via `app.mock-provider.*`), chamado via HTTP real e
+      protegido por Resilience4j; taxa fresca persistida como linha
+      append-only (`source=MOCK_PROVIDER`); indisponibilidade cai para a
+      última taxa conhecida no banco, sem nunca bloquear a liquidação.
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
 - [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
       Prometheus/Grafana no compose)
 - [ ] Telas de cadastro (CRUD) no frontend — API já existe, sem UI própria
@@ -403,6 +451,8 @@ se paga aqui.
   - `v0.1.0` — motor de precificação + endpoint de simulação testado.
   - `v0.2.0` — liquidação completa (individual, lote, extrato).
   - `v0.3.0` — dockerizado (Docker Compose local).
+  - `v0.4.0` — mock de provedor de câmbio + Resilience4j (retry/circuit
+    breaker/fallback).
   - `v1.0.0` será a tag da entrega final, quando observabilidade,
     resiliência, frontend e CI/CD estiverem completos.
 
