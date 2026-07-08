@@ -71,15 +71,15 @@ class SimulationControllerIntegrationTest extends AbstractIntegrationTest {
         SimulationRequest request =
                 new SimulationRequest(receivable.getId(), new BigDecimal("2.0"), referenceDate);
 
-        // taxa total = 2,0% (base) + 1,5% (spread da duplicata) = 3,5% a.m.; prazo = 1 mes
-        // PV = 10000 / 1,035 = 9661,8357487922... -> 9661,835749 (HALF_EVEN, 6 casas)
+        // taxa total = 2,0% (base) - 1,5% (spread da duplicata) = 0,5% a.m.; prazo = 1 mes
+        // PV = 10000 / 1,005 = 9950,2487562189... -> 9950,248756 (HALF_EVEN, 6 casas)
         mockMvc.perform(
                         post("/simulations")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.receivableId").value(receivable.getId()))
-                .andExpect(jsonPath("$.presentValue").value(comparesEqualTo(9661.835749)))
+                .andExpect(jsonPath("$.presentValue").value(comparesEqualTo(9950.248756)))
                 .andExpect(jsonPath("$.termInMonths").value(comparesEqualTo(1.0)))
                 .andExpect(jsonPath("$.currencyCode").value("BRL"));
     }

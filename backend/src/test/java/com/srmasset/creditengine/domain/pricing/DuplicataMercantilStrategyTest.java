@@ -46,11 +46,11 @@ class DuplicataMercantilStrategyTest {
 
         BigDecimal presentValue = strategy.calculatePresentValue(receivable, baseRate);
 
-        // taxa total = 2,0% (base) + 1,5% (spread) = 3,5% a.m.; prazo = 30/30 = 1 mes
-        // PV = 10000 / 1,035
+        // taxa total = 2,0% (base) - 1,5% (spread) = 0,5% a.m.; prazo = 30/30 = 1 mes
+        // PV = 10000 / 1,005
         BigDecimal expected =
                 new BigDecimal("10000.00")
-                        .divide(new BigDecimal("1.035"), 6, RoundingMode.HALF_EVEN);
+                        .divide(new BigDecimal("1.005"), 6, RoundingMode.HALF_EVEN);
 
         assertThat(presentValue.setScale(6, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
     }
