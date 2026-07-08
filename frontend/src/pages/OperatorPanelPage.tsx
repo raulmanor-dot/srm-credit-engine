@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Container, Divider, Grid, Group, NumberInput, Select, Skeleton, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Card, Container, Divider, Grid, Group, NumberInput, Select, Skeleton, Stack, Text, Title } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -18,7 +18,11 @@ import { NewReceivableModal } from '../components/NewReceivableModal';
 // /simulations. "Liquidar" reusa os mesmos parâmetros da simulação: é
 // literalmente o mesmo cálculo, só que persistido (POST /settlements).
 export function OperatorPanelPage() {
-	const { data: receivables, isLoading: isLoadingReceivables } = useReceivables('PENDING');
+	const {
+		data: receivables,
+		isLoading: isLoadingReceivables,
+		error: receivablesError,
+	} = useReceivables('PENDING');
 	const { data: currencies } = useCurrencies();
 	const [receivableId, setReceivableId] = useState<string | null>(null);
 	const [baseRate, setBaseRate] = useState<number | ''>(2.0);
@@ -102,6 +106,12 @@ export function OperatorPanelPage() {
 			</Group>
 
 			<NewReceivableModal opened={modalOpened} onClose={closeModal} onCreated={handleReceivableCreated} />
+
+			{receivablesError && (
+				<Alert color="red" mb="lg" title="Não foi possível carregar os recebíveis pendentes">
+					{receivablesError instanceof ApiError ? receivablesError.message : 'Verifique se a API está no ar.'}
+				</Alert>
+			)}
 
 			<Grid>
 				<Grid.Col span={{ base: 12, md: 6 }}>

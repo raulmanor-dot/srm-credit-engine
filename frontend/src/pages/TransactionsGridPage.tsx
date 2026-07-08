@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ActionIcon, Container, Group, Select, Table, Text, Title } from '@mantine/core';
+import { ActionIcon, Alert, Container, Group, Select, Table, Text, Title } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useAssignors } from '../api/assignors';
 import { useCurrencies } from '../api/currencies';
+import { ApiError } from '../api/httpClient';
 import { SETTLEMENT_REPORT_PAGE_SIZE, useSettlementReport } from '../api/settlementReport';
 
 // "Grid de Transações": histórico de liquidações com paginação server-side
@@ -19,7 +20,11 @@ export function TransactionsGridPage() {
 
 	const { data: assignors } = useAssignors();
 	const { data: currencies } = useCurrencies();
-	const { data: rows, isFetching } = useSettlementReport(page, {
+	const {
+		data: rows,
+		isFetching,
+		error: reportError,
+	} = useSettlementReport(page, {
 		fromDate: fromDate ?? undefined,
 		toDate: toDate ?? undefined,
 		assignorId: assignorId ? Number(assignorId) : undefined,
@@ -42,6 +47,12 @@ export function TransactionsGridPage() {
 			<Title order={2} mb="lg">
 				Grid de Transações
 			</Title>
+
+			{reportError && (
+				<Alert color="red" mb="lg" title="Não foi possível carregar o extrato de liquidações">
+					{reportError instanceof ApiError ? reportError.message : 'Verifique se a API está no ar.'}
+				</Alert>
+			)}
 
 			<Group mb="md">
 				<DateInput label="De" value={fromDate} onChange={resetToFirstPage(setFromDate)} clearable />
@@ -106,7 +117,7 @@ export function TransactionsGridPage() {
 				</Table.Tbody>
 			</Table>
 
-			{!isFetching && (rows?.length ?? 0) === 0 && (
+			{!isFetching && !reportError && (rows?.length ?? 0) === 0 && (
 				<Text c="dimmed" ta="center" mt="md">
 					Nenhuma liquidação encontrada para os filtros selecionados.
 				</Text>
