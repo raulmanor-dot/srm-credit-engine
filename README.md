@@ -307,12 +307,27 @@ cd backend
 ./gradlew test
 ```
 
-Isso compila e roda os 10 testes unitários (sem Spring context nem banco) e
-os 3 testes de integração em `src/test/.../integration` (`SimulationController`,
-optimistic locking, constraint unique), que sobem um Postgres real via
-Testcontainers — mecanismo independente do `docker-compose.yml` acima (o
-Testcontainers gerencia seu próprio container efêmero por execução de
-teste).
+Isso compila e roda os 19 testes unitários (sem Spring context nem banco) e
+os 18 testes de integração em `src/test/.../integration` (9 classes:
+CRUD de `Assignor`/`Currency`/`Receivable`, optimistic locking, constraint
+unique, extrato/relatório, simulação e liquidação), que sobem um Postgres
+real via Testcontainers — mecanismo independente do `docker-compose.yml`
+acima.
+
+`AbstractIntegrationTest` usa o padrão "singleton container" do
+Testcontainers: um único Postgres é iniciado uma vez por JVM num bloco
+`static` (não via `@Testcontainers`/`@Container`, cuja extensão do JUnit5
+trata o campo como escopo *por classe* — inicia antes e para depois de
+cada classe que o usa, mesmo sendo um campo estático herdado — o que
+derrubava e recriava o container no meio da suíte enquanto o Spring
+reaproveitava o `ApplicationContext` cacheado da classe anterior, ainda
+apontando para a porta antiga; foi exatamente isso, e não uma
+particularidade do Windows/Podman, que causava o `ConnectException`
+esporádico observado antes desta fase). Como o banco agora é
+genuinamente compartilhado por toda a suíte, os dados de fixture
+(CPF/CNPJ de `Assignor` nos testes) precisam ser únicos entre classes —
+colisões de `UNIQUE` apareceram e foram corrigidas ao mudar para essa
+suíte de testes verdadeiramente compartilhada.
 
 **Nota sobre ambiente Windows local (afeta só Testcontainers, não o
 `docker compose up` acima nem CI/Linux):** nesta máquina de
@@ -322,13 +337,7 @@ versionadas da API — isso quebra a negociação de versão do `docker-java`
 usado pelo Testcontainers, em qualquer transporte (pipe do Windows ou socket
 do WSL2). Contornado rodando os testes com o **Podman** (`podman machine
 start`, depois `DOCKER_HOST=npipe:////./pipe/podman-machine-default`) em vez
-do Docker Desktop. Mesmo com Podman, rodar os 3 testes de integração em
-sequência rápida no mesmo processo Gradle ocasionalmente esbarra em
-flakiness de rede do Podman-sobre-WSL2 (um `ConnectException` transitório ao
-abrir a 3ª conexão JDBC em sequência) — **cada teste individualmente passa
-de forma consistente** (verificado repetidas vezes isolado via `--tests`).
-Em CI real (GitHub Actions, Linux nativo, Docker sem essa camada de
-compatibilidade) esse problema não é esperado.
+do Docker Desktop.
 
 ## CI/CD
 

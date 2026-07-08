@@ -2,10 +2,7 @@ package com.srmasset.creditengine.integration;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base para testes de integração: sobe um Postgres real via Testcontainers
@@ -15,14 +12,26 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * (V1-V7, incluindo o trigger append-only e as constraints) rodam de
  * verdade a cada teste, contra o mesmo motor de banco usado em produção.
  *
- * <p>O container é {@code static} para ser reaproveitado entre todas as
- * classes de teste da JVM (Testcontainers reusa a mesma instância).
+ * <p>Padrão "singleton container" (deliberadamente sem {@code @Testcontainers}
+ * / {@code @Container}): essa extensão do JUnit5 trata um campo estático
+ * como escopo *por classe* — inicia antes da classe e para depois da
+ * última classe que o usa — não como singleton de JVM. Como o campo é
+ * herdado por 9 classes de teste, isso derrubava o container no meio da
+ * suíte e recriava um novo em outra porta, enquanto o Spring reaproveitava
+ * o {@code ApplicationContext} (e o pool Hikari) cacheado da classe
+ * anterior, ainda apontando para a porta antiga — resultando em
+ * {@code ConnectException} determinístico a partir da 2ª classe de teste
+ * em diante. O start manual em bloco estático garante uma única
+ * inicialização por JVM; o Ryuk (reaper do Testcontainers) ainda limpa o
+ * container na saída da JVM.
  */
-@Testcontainers
 @SpringBootTest
 public abstract class AbstractIntegrationTest {
 
-	@Container
 	@ServiceConnection
 	static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+	static {
+		POSTGRES.start();
+	}
 }

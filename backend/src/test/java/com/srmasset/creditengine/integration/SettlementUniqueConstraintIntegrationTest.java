@@ -47,7 +47,7 @@ class SettlementUniqueConstraintIntegrationTest extends AbstractIntegrationTest 
 		Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
 		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
 				.orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa Unique", "33444555000166"));
+		Assignor assignor = assignorRepository.save(new Assignor("Empresa Unique", "33444555000133"));
 
 		LocalDate today = LocalDate.now();
 		Receivable receivable = receivableRepository.save(new Receivable(
