@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { httpClient } from './httpClient';
-import type { ReceivableResponse, ReceivableStatus } from './types';
+import type { ReceivableRequest, ReceivableResponse, ReceivableStatus } from './types';
 
 export function useReceivables(status?: ReceivableStatus) {
 	return useQuery({
@@ -8,6 +8,16 @@ export function useReceivables(status?: ReceivableStatus) {
 		queryFn: () => {
 			const query = status ? `?status=${status}` : '';
 			return httpClient.get<ReceivableResponse[]>(`/receivables${query}`);
+		},
+	});
+}
+
+export function useCreateReceivable() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (request: ReceivableRequest) => httpClient.post<ReceivableResponse>('/receivables', request),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['receivables'] });
 		},
 	});
 }

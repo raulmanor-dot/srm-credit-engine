@@ -135,6 +135,21 @@ CRUD completo do backend:
   O backend não expõe total de páginas (decisão deliberada, ver
   `SettlementReportRepository`) — "próxima página" é habilitada
   heuristicamente enquanto a página atual vier cheia (`size` itens).
+- **Ações no Painel do Operador** (fase seguinte, para o painel deixar de
+  ser só leitura): botão **"+ Novo recebível"** abre um modal
+  (`NewReceivableModal`) que cria um recebível via `POST /receivables`,
+  com criação rápida de cedente embutida (`POST /assignors` inline, sem
+  sair do formulário) — sem isso, popular o painel dependia de `curl`
+  direto na API. Depois de simular, botão **"Liquidar"** chama `POST
+  /settlements` com os mesmos parâmetros já usados na simulação (mesma
+  conta, agora persistida) e sugere a moeda de pagamento igual à moeda de
+  face do recebível (editável, para exercitar a conversão cambial). Ambas
+  as ações invalidam as queries afetadas (TanStack Query) — o recebível
+  liquidado some da lista de pendentes e aparece na Grid de Transações
+  sem precisar recarregar a página. Endpoint novo de apoio: `GET
+  /receivable-types` (`ReceivableTypeController`), só leitura, sem
+  `Service` — é dado de referência estático usado apenas para popular o
+  seletor "Tipo" do formulário, sem regra de negócio a encapsular.
 - **Arquitetura**: `src/api/*` isola toda chamada HTTP e cache
   (TanStack Query) em hooks (`useReceivables`, `useSimulation`,
   `useSettlementReport`...); `src/pages/*` só consome esses hooks e
@@ -229,6 +244,10 @@ Implementado neste commit:
       Painel do Operador (simulação em tempo real com debounce) e Grid de
       Transações (extrato paginado server-side, filtros dinâmicos),
       verificado ponta a ponta no navegador (Playwright headless)
+- [x] Ações no Painel do Operador: criar recebível (com criação rápida de
+      cedente inline) e liquidar direto do painel, sem precisar de `curl` —
+      fluxo completo (criar cedente → criar recebível → simular → liquidar
+      → aparece na grid) verificado no navegador
 
 Pendente (próximas fases, não implementado ainda):
 
