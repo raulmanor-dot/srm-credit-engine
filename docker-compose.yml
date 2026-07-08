@@ -26,6 +26,11 @@ services:
       DB_NAME: ${POSTGRES_DB:-srm_credit_engine}
       DB_USER: ${POSTGRES_USER:-srm}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-srm}
+      # Provedor de câmbio mock (ver ADR 0006): a app chama a si mesma via
+      # HTTP real em localhost, protegida por Resilience4j. Knobs de caos
+      # sobrescrevíveis para demonstrar retry/circuit breaker/fallback.
+      APP_MOCK_PROVIDER_FAILURE_RATE: ${FX_MOCK_FAILURE_RATE:-0.2}
+      APP_MOCK_PROVIDER_MAX_LATENCY_MS: ${FX_MOCK_MAX_LATENCY_MS:-200}
     depends_on:
       postgres:
         condition: service_healthy
