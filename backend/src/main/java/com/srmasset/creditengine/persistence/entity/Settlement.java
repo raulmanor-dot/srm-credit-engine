@@ -6,11 +6,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * Registro de auditoria da liquidação: guarda snapshot de todas as taxas
@@ -31,12 +33,14 @@ public class Settlement {
 	@JoinColumn(name = "receivable_id", unique = true)
 	private Receivable receivable;
 
+	@ManyToOne(optional = false)
 	@JoinColumn(name = "payment_currency_id")
 	private Currency paymentCurrency;
 
 	@Column(name = "face_value", nullable = false, precision = 19, scale = 6)
 	private BigDecimal faceValue;
 
+	@ManyToOne(optional = false)
 	@JoinColumn(name = "face_value_currency_id")
 	private Currency faceValueCurrency;
 
@@ -68,10 +72,40 @@ public class Settlement {
 	@Column(name = "settled_at", nullable = false)
 	private OffsetDateTime settledAt;
 
+	// Ver Receivable.createdAt: sem @CreationTimestamp, o Hibernate manda NULL
+	// explícito no INSERT e o DEFAULT now() do Postgres nunca é acionado.
+	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private OffsetDateTime createdAt;
 
 	protected Settlement() {
+	}
+
+	public Settlement(
+			Receivable receivable,
+			Currency paymentCurrency,
+			BigDecimal faceValue,
+			Currency faceValueCurrency,
+			BigDecimal baseRateUsed,
+			BigDecimal spreadUsed,
+			Integer termDays,
+			BigDecimal termMonths,
+			BigDecimal presentValueFaceCurrency,
+			BigDecimal fxRateUsed,
+			BigDecimal netValuePaymentCurrency,
+			OffsetDateTime settledAt) {
+		this.receivable = receivable;
+		this.paymentCurrency = paymentCurrency;
+		this.faceValue = faceValue;
+		this.faceValueCurrency = faceValueCurrency;
+		this.baseRateUsed = baseRateUsed;
+		this.spreadUsed = spreadUsed;
+		this.termDays = termDays;
+		this.termMonths = termMonths;
+		this.presentValueFaceCurrency = presentValueFaceCurrency;
+		this.fxRateUsed = fxRateUsed;
+		this.netValuePaymentCurrency = netValuePaymentCurrency;
+		this.settledAt = settledAt;
 	}
 
 	public Long getId() {

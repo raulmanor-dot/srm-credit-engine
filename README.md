@@ -112,10 +112,13 @@ Implementado neste commit:
 - [x] Testes unitários do motor de precificação (10 testes, sem Spring
       context nem banco — `TermCalculator`, as duas Strategies e o
       `PricingStrategyResolver`)
+- [x] Testes de integração com Testcontainers/Postgres real: fluxo completo
+      do `POST /simulations`, optimistic locking em `receivables.version` sob
+      concorrência real, e a constraint `UNIQUE` de `settlements.receivable_id`
+      (ver observação sobre ambiente local abaixo)
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Testes de integração com Testcontainers (Postgres real)
 - [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`), controller
       de liquidação
 - [ ] `ReportController` / `ReportRepository` (caminho paralelo, SQL nativo)
@@ -129,17 +132,33 @@ Pendente (próximas fases, não implementado ainda):
 
 ## Rodando localmente (parcial)
 
-Ainda não há Docker Compose nem banco configurado. Por enquanto:
+Ainda não há Docker Compose nem banco fixo configurado. Por enquanto:
 
 ```bash
 cd backend
 ./gradlew test
 ```
 
-Isso compila e roda os 10 testes unitários do motor de precificação (sem
-Spring context nem banco). A aplicação ainda não sobe de ponta a ponta porque
-depende de um PostgreSQL — isso entra na próxima fase junto com o
-`docker-compose.yml`.
+Isso compila e roda os 10 testes unitários (sem Spring context nem banco) e
+os 3 testes de integração em `src/test/.../integration` (`SimulationController`,
+optimistic locking, constraint unique), que sobem um Postgres real via
+Testcontainers. A aplicação ainda não sobe de ponta a ponta fora de teste
+porque depende de um `docker-compose.yml` — isso entra na próxima fase.
+
+**Nota sobre ambiente Windows local (não afeta CI/Linux):** nesta máquina de
+desenvolvimento, o Docker Desktop 4.81 expõe um proxy de compatibilidade
+(named pipe e socket Unix) que devolve uma resposta stub para chamadas
+versionadas da API — isso quebra a negociação de versão do `docker-java`
+usado pelo Testcontainers, em qualquer transporte (pipe do Windows ou socket
+do WSL2). Contornado rodando os testes com o **Podman** (`podman machine
+start`, depois `DOCKER_HOST=npipe:////./pipe/podman-machine-default`) em vez
+do Docker Desktop. Mesmo com Podman, rodar os 3 testes de integração em
+sequência rápida no mesmo processo Gradle ocasionalmente esbarra em
+flakiness de rede do Podman-sobre-WSL2 (um `ConnectException` transitório ao
+abrir a 3ª conexão JDBC em sequência) — **cada teste individualmente passa
+de forma consistente** (verificado repetidas vezes isolado via `--tests`).
+Em CI real (GitHub Actions, Linux nativo, Docker sem essa camada de
+compatibilidade) esse problema não é esperado.
 
 ## Decisões de arquitetura (ADRs)
 
