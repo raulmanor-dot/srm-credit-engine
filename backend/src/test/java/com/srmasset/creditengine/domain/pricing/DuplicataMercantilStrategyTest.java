@@ -46,13 +46,20 @@ class DuplicataMercantilStrategyTest {
 
         BigDecimal presentValue = strategy.calculatePresentValue(receivable, baseRate);
 
-        // taxa total = 2,0% (base) - 1,5% (spread) = 0,5% a.m.; prazo = 30/30 = 1 mes
-        // PV = 10000 / 1,005
+        // taxa total = 2,0% (base) + 1,5% (spread) = 3,5% a.m.; prazo = 30/30 = 1 mes
+        // PV = 10000 / 1,035
         BigDecimal expected =
                 new BigDecimal("10000.00")
-                        .divide(new BigDecimal("1.005"), 6, RoundingMode.HALF_EVEN);
+                        .divide(new BigDecimal("1.035"), 6, RoundingMode.HALF_EVEN);
 
         assertThat(presentValue.setScale(6, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
+
+        // Guarda de sanidade financeira: com taxa total positiva, o valor presente
+        // NUNCA pode superar o valor de face — regressão do incidente descrito em
+        // docs/crisis-simulation.md, onde inverter o sinal do spread produzia o
+        // contrário (PV > faceValue) sem quebrar a igualdade acima, porque o valor
+        // esperado tinha sido recalculado para "concordar" com o bug.
+        assertThat(presentValue).isLessThan(receivable.getFaceValue());
     }
 
     @Test

@@ -24,7 +24,7 @@ public abstract class AbstractCompoundInterestPricingStrategy implements Pricing
     @Override
     public BigDecimal calculatePresentValue(Receivable receivable, BaseRate baseRate) {
         BigDecimal spreadPercent = receivable.getReceivableType().getSpreadPercentMonthly();
-        BigDecimal totalRatePercent = baseRate.monthlyPercent().subtract(spreadPercent, MC);
+        BigDecimal totalRatePercent = baseRate.monthlyPercent().add(spreadPercent, MC);
         BigDecimal monthlyRateDecimal = totalRatePercent.divide(ONE_HUNDRED, MC);
 
         BigDecimal termInMonths =
