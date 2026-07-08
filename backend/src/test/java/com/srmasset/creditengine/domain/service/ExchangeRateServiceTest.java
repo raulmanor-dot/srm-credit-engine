@@ -26,96 +26,139 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ExchangeRateServiceTest {
 
-	@Mock
-	private ExchangeRateRepository exchangeRateRepository;
+    @Mock private ExchangeRateRepository exchangeRateRepository;
 
-	@Mock
-	private ExchangeRateProvider exchangeRateProvider;
+    @Mock private ExchangeRateProvider exchangeRateProvider;
 
-	private final ExchangeRateMetricsRecorder exchangeRateMetricsRecorder =
-			new ExchangeRateMetricsRecorder(new SimpleMeterRegistry());
+    private final ExchangeRateMetricsRecorder exchangeRateMetricsRecorder =
+            new ExchangeRateMetricsRecorder(new SimpleMeterRegistry());
 
-	private final Currency usd = new Currency("USD", "Dolar Americano");
-	private final Currency brl = new Currency("BRL", "Real Brasileiro");
+    private final Currency usd = new Currency("USD", "Dolar Americano");
+    private final Currency brl = new Currency("BRL", "Real Brasileiro");
 
-	@Test
-	void returnsDirectRateWhenPairExistsInThatDirection() {
-		ExchangeRateService service =
-				new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
-		ExchangeRate rate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
-				.thenReturn(Optional.of(rate));
+    @Test
+    void returnsDirectRateWhenPairExistsInThatDirection() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        false,
+                        exchangeRateMetricsRecorder);
+        ExchangeRate rate =
+                new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        usd, brl))
+                .thenReturn(Optional.of(rate));
 
-		BigDecimal result = service.getCurrentRate(usd, brl);
+        BigDecimal result = service.getCurrentRate(usd, brl);
 
-		assertThat(result).isEqualByComparingTo(new BigDecimal("5.400000"));
-		verifyNoInteractions(exchangeRateProvider);
-	}
+        assertThat(result).isEqualByComparingTo(new BigDecimal("5.400000"));
+        verifyNoInteractions(exchangeRateProvider);
+    }
 
-	@Test
-	void invertsRateWhenOnlyInversePairExists() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
-		ExchangeRate rate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(brl, usd))
-				.thenReturn(Optional.empty());
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
-				.thenReturn(Optional.of(rate));
+    @Test
+    void invertsRateWhenOnlyInversePairExists() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        false,
+                        exchangeRateMetricsRecorder);
+        ExchangeRate rate =
+                new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        brl, usd))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        usd, brl))
+                .thenReturn(Optional.of(rate));
 
-		BigDecimal result = service.getCurrentRate(brl, usd);
+        BigDecimal result = service.getCurrentRate(brl, usd);
 
-		BigDecimal expected = BigDecimal.ONE.divide(new BigDecimal("5.400000"), 6, RoundingMode.HALF_EVEN);
-		assertThat(result.setScale(6, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
-	}
+        BigDecimal expected =
+                BigDecimal.ONE.divide(new BigDecimal("5.400000"), 6, RoundingMode.HALF_EVEN);
+        assertThat(result.setScale(6, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
+    }
 
-	@Test
-	void throwsWhenNeitherDirectionExistsAndProviderDisabled() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
-				.thenReturn(Optional.empty());
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(brl, usd))
-				.thenReturn(Optional.empty());
+    @Test
+    void throwsWhenNeitherDirectionExistsAndProviderDisabled() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        false,
+                        exchangeRateMetricsRecorder);
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        usd, brl))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        brl, usd))
+                .thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.getCurrentRate(usd, brl))
-				.isInstanceOf(ExchangeRateNotFoundException.class);
-	}
+        assertThatThrownBy(() -> service.getCurrentRate(usd, brl))
+                .isInstanceOf(ExchangeRateNotFoundException.class);
+    }
 
-	@Test
-	void persistsProviderRateAsMockProviderRowAndReturnsIt() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
-		when(exchangeRateProvider.fetchRate("USD", "BRL")).thenReturn(new BigDecimal("5.500000"));
+    @Test
+    void persistsProviderRateAsMockProviderRowAndReturnsIt() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        true,
+                        exchangeRateMetricsRecorder);
+        when(exchangeRateProvider.fetchRate("USD", "BRL")).thenReturn(new BigDecimal("5.500000"));
 
-		BigDecimal result = service.getCurrentRate(usd, brl);
+        BigDecimal result = service.getCurrentRate(usd, brl);
 
-		assertThat(result).isEqualByComparingTo(new BigDecimal("5.500000"));
-		verify(exchangeRateRepository).save(any(ExchangeRate.class));
-	}
+        assertThat(result).isEqualByComparingTo(new BigDecimal("5.500000"));
+        verify(exchangeRateRepository).save(any(ExchangeRate.class));
+    }
 
-	@Test
-	void fallsBackToLatestStoredRateWhenProviderUnavailable() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
-		when(exchangeRateProvider.fetchRate("USD", "BRL"))
-				.thenThrow(new ExchangeRateProviderUnavailableException("USD", "BRL", new RuntimeException("boom")));
-		ExchangeRate storedRate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
-				.thenReturn(Optional.of(storedRate));
+    @Test
+    void fallsBackToLatestStoredRateWhenProviderUnavailable() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        true,
+                        exchangeRateMetricsRecorder);
+        when(exchangeRateProvider.fetchRate("USD", "BRL"))
+                .thenThrow(
+                        new ExchangeRateProviderUnavailableException(
+                                "USD", "BRL", new RuntimeException("boom")));
+        ExchangeRate storedRate =
+                new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        usd, brl))
+                .thenReturn(Optional.of(storedRate));
 
-		BigDecimal result = service.getCurrentRate(usd, brl);
+        BigDecimal result = service.getCurrentRate(usd, brl);
 
-		assertThat(result).isEqualByComparingTo(new BigDecimal("5.400000"));
-		verify(exchangeRateRepository, never()).save(any(ExchangeRate.class));
-	}
+        assertThat(result).isEqualByComparingTo(new BigDecimal("5.400000"));
+        verify(exchangeRateRepository, never()).save(any(ExchangeRate.class));
+    }
 
-	@Test
-	void throwsExchangeRateNotFoundWhenProviderDownAndNoStoredRate() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
-		when(exchangeRateProvider.fetchRate("USD", "BRL"))
-				.thenThrow(new ExchangeRateProviderUnavailableException("USD", "BRL", new RuntimeException("boom")));
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
-				.thenReturn(Optional.empty());
-		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(brl, usd))
-				.thenReturn(Optional.empty());
+    @Test
+    void throwsExchangeRateNotFoundWhenProviderDownAndNoStoredRate() {
+        ExchangeRateService service =
+                new ExchangeRateService(
+                        exchangeRateRepository,
+                        exchangeRateProvider,
+                        true,
+                        exchangeRateMetricsRecorder);
+        when(exchangeRateProvider.fetchRate("USD", "BRL"))
+                .thenThrow(
+                        new ExchangeRateProviderUnavailableException(
+                                "USD", "BRL", new RuntimeException("boom")));
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        usd, brl))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(
+                        brl, usd))
+                .thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.getCurrentRate(usd, brl))
-				.isInstanceOf(ExchangeRateNotFoundException.class);
-	}
+        assertThatThrownBy(() -> service.getCurrentRate(usd, brl))
+                .isInstanceOf(ExchangeRateNotFoundException.class);
+    }
 }

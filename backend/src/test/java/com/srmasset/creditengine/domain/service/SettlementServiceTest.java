@@ -37,103 +37,139 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SettlementServiceTest {
 
-	@Mock
-	private ReceivableRepository receivableRepository;
+    @Mock private ReceivableRepository receivableRepository;
 
-	@Mock
-	private CurrencyRepository currencyRepository;
+    @Mock private CurrencyRepository currencyRepository;
 
-	@Mock
-	private SettlementRepository settlementRepository;
+    @Mock private SettlementRepository settlementRepository;
 
-	@Mock
-	private ExchangeRateService exchangeRateService;
+    @Mock private ExchangeRateService exchangeRateService;
 
-	private SettlementService settlementService;
+    private SettlementService settlementService;
 
-	private final Currency brl = new Currency("BRL", "Real Brasileiro");
-	private final Currency usd = new Currency("USD", "Dolar Americano");
-	private final ReceivableType duplicata =
-			new ReceivableType(ReceivableTypeCode.DUPLICATA_MERCANTIL, "Duplicata Mercantil", new BigDecimal("1.5"));
+    private final Currency brl = new Currency("BRL", "Real Brasileiro");
+    private final Currency usd = new Currency("USD", "Dolar Americano");
+    private final ReceivableType duplicata =
+            new ReceivableType(
+                    ReceivableTypeCode.DUPLICATA_MERCANTIL,
+                    "Duplicata Mercantil",
+                    new BigDecimal("1.5"));
 
-	@BeforeEach
-	void setUp() {
-		PricingStrategyResolver pricingStrategyResolver = new PricingStrategyResolver(List.of(new DuplicataMercantilStrategy()));
-		SettlementMetricsRecorder settlementMetricsRecorder = new SettlementMetricsRecorder(new SimpleMeterRegistry());
-		settlementService = new SettlementService(
-				receivableRepository, currencyRepository, settlementRepository, pricingStrategyResolver,
-				exchangeRateService, settlementMetricsRecorder);
-	}
+    @BeforeEach
+    void setUp() {
+        PricingStrategyResolver pricingStrategyResolver =
+                new PricingStrategyResolver(List.of(new DuplicataMercantilStrategy()));
+        SettlementMetricsRecorder settlementMetricsRecorder =
+                new SettlementMetricsRecorder(new SimpleMeterRegistry());
+        settlementService =
+                new SettlementService(
+                        receivableRepository,
+                        currencyRepository,
+                        settlementRepository,
+                        pricingStrategyResolver,
+                        exchangeRateService,
+                        settlementMetricsRecorder);
+    }
 
-	private Receivable newReceivable(Currency faceCurrency, LocalDate referenceDate) {
-		Assignor assignor = new Assignor("Empresa Teste", "12345678000199");
-		return new Receivable(
-				assignor, duplicata, faceCurrency, new BigDecimal("10000.00"), "DOC-1", referenceDate, referenceDate.plusDays(30));
-	}
+    private Receivable newReceivable(Currency faceCurrency, LocalDate referenceDate) {
+        Assignor assignor = new Assignor("Empresa Teste", "12345678000199");
+        return new Receivable(
+                assignor,
+                duplicata,
+                faceCurrency,
+                new BigDecimal("10000.00"),
+                "DOC-1",
+                referenceDate,
+                referenceDate.plusDays(30));
+    }
 
-	@Test
-	void settlesWithoutConversionWhenSameCurrency() {
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = newReceivable(brl, referenceDate);
-		when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
-		when(currencyRepository.findByCode("BRL")).thenReturn(Optional.of(brl));
-		when(settlementRepository.saveAndFlush(any(Settlement.class))).thenAnswer(inv -> inv.getArgument(0));
-		when(receivableRepository.saveAndFlush(receivable)).thenReturn(receivable);
+    @Test
+    void settlesWithoutConversionWhenSameCurrency() {
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable = newReceivable(brl, referenceDate);
+        when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
+        when(currencyRepository.findByCode("BRL")).thenReturn(Optional.of(brl));
+        when(settlementRepository.saveAndFlush(any(Settlement.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(receivableRepository.saveAndFlush(receivable)).thenReturn(receivable);
 
-		Settlement settlement = settlementService.settle(1L, "BRL", new BaseRate(new BigDecimal("2.0"), referenceDate));
+        Settlement settlement =
+                settlementService.settle(
+                        1L, "BRL", new BaseRate(new BigDecimal("2.0"), referenceDate));
 
-		assertThat(settlement.getFxRateUsed()).isNull();
-		assertThat(settlement.getNetValuePaymentCurrency()).isEqualByComparingTo(settlement.getPresentValueFaceCurrency());
-		assertThat(receivable.getStatus()).isEqualTo(Receivable.Status.SETTLED);
-	}
+        assertThat(settlement.getFxRateUsed()).isNull();
+        assertThat(settlement.getNetValuePaymentCurrency())
+                .isEqualByComparingTo(settlement.getPresentValueFaceCurrency());
+        assertThat(receivable.getStatus()).isEqualTo(Receivable.Status.SETTLED);
+    }
 
-	@Test
-	void convertsToPaymentCurrencyWhenDifferentFromFaceCurrency() {
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = newReceivable(brl, referenceDate);
-		when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
-		when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
-		when(exchangeRateService.getCurrentRate(brl, usd)).thenReturn(new BigDecimal("0.185185"));
-		when(settlementRepository.saveAndFlush(any(Settlement.class))).thenAnswer(inv -> inv.getArgument(0));
-		when(receivableRepository.saveAndFlush(receivable)).thenReturn(receivable);
+    @Test
+    void convertsToPaymentCurrencyWhenDifferentFromFaceCurrency() {
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable = newReceivable(brl, referenceDate);
+        when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
+        when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
+        when(exchangeRateService.getCurrentRate(brl, usd)).thenReturn(new BigDecimal("0.185185"));
+        when(settlementRepository.saveAndFlush(any(Settlement.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(receivableRepository.saveAndFlush(receivable)).thenReturn(receivable);
 
-		Settlement settlement = settlementService.settle(1L, "USD", new BaseRate(new BigDecimal("2.0"), referenceDate));
+        Settlement settlement =
+                settlementService.settle(
+                        1L, "USD", new BaseRate(new BigDecimal("2.0"), referenceDate));
 
-		assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(new BigDecimal("0.185185"));
-		BigDecimal roughlyExpectedNetValue = settlement.getPresentValueFaceCurrency().multiply(new BigDecimal("0.185185"));
-		assertThat(settlement.getNetValuePaymentCurrency()).isCloseTo(roughlyExpectedNetValue, Percentage.withPercentage(0.01));
-	}
+        assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(new BigDecimal("0.185185"));
+        BigDecimal roughlyExpectedNetValue =
+                settlement.getPresentValueFaceCurrency().multiply(new BigDecimal("0.185185"));
+        assertThat(settlement.getNetValuePaymentCurrency())
+                .isCloseTo(roughlyExpectedNetValue, Percentage.withPercentage(0.01));
+    }
 
-	@Test
-	void throwsWhenReceivableNotFound() {
-		when(receivableRepository.findById(99L)).thenReturn(Optional.empty());
+    @Test
+    void throwsWhenReceivableNotFound() {
+        when(receivableRepository.findById(99L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> settlementService.settle(99L, "BRL", new BaseRate(new BigDecimal("2.0"), LocalDate.now())))
-				.isInstanceOf(ReceivableNotFoundException.class);
-	}
+        assertThatThrownBy(
+                        () ->
+                                settlementService.settle(
+                                        99L,
+                                        "BRL",
+                                        new BaseRate(new BigDecimal("2.0"), LocalDate.now())))
+                .isInstanceOf(ReceivableNotFoundException.class);
+    }
 
-	@Test
-	void throwsWhenPaymentCurrencyNotFound() {
-		Receivable receivable = newReceivable(brl, LocalDate.now());
-		when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
-		when(currencyRepository.findByCode("XYZ")).thenReturn(Optional.empty());
+    @Test
+    void throwsWhenPaymentCurrencyNotFound() {
+        Receivable receivable = newReceivable(brl, LocalDate.now());
+        when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
+        when(currencyRepository.findByCode("XYZ")).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> settlementService.settle(1L, "XYZ", new BaseRate(new BigDecimal("2.0"), LocalDate.now())))
-				.isInstanceOf(CurrencyNotFoundException.class);
-	}
+        assertThatThrownBy(
+                        () ->
+                                settlementService.settle(
+                                        1L,
+                                        "XYZ",
+                                        new BaseRate(new BigDecimal("2.0"), LocalDate.now())))
+                .isInstanceOf(CurrencyNotFoundException.class);
+    }
 
-	@Test
-	void throwsAndWritesNothingWhenReceivableAlreadySettled() {
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = newReceivable(brl, referenceDate);
-		receivable.markAsSettled();
-		when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
-		when(currencyRepository.findByCode("BRL")).thenReturn(Optional.of(brl));
+    @Test
+    void throwsAndWritesNothingWhenReceivableAlreadySettled() {
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable = newReceivable(brl, referenceDate);
+        receivable.markAsSettled();
+        when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
+        when(currencyRepository.findByCode("BRL")).thenReturn(Optional.of(brl));
 
-		assertThatThrownBy(() -> settlementService.settle(1L, "BRL", new BaseRate(new BigDecimal("2.0"), referenceDate)))
-				.isInstanceOf(ReceivableNotPendingException.class);
+        assertThatThrownBy(
+                        () ->
+                                settlementService.settle(
+                                        1L,
+                                        "BRL",
+                                        new BaseRate(new BigDecimal("2.0"), referenceDate)))
+                .isInstanceOf(ReceivableNotPendingException.class);
 
-		verify(settlementRepository, never()).saveAndFlush(any());
-		verify(receivableRepository, never()).saveAndFlush(any());
-	}
+        verify(settlementRepository, never()).saveAndFlush(any());
+        verify(receivableRepository, never()).saveAndFlush(any());
+    }
 }

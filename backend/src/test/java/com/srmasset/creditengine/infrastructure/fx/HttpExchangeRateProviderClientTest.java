@@ -16,38 +16,39 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 /**
- * Testa só o parsing/tradução de resposta do adapter, sem contexto Spring —
- * as anotações {@code @Retry}/{@code @CircuitBreaker} são inertes sem o
- * proxy AOP (isso é coberto pelos testes de integração com servidor real).
+ * Testa só o parsing/tradução de resposta do adapter, sem contexto Spring — as anotações
+ * {@code @Retry}/{@code @CircuitBreaker} são inertes sem o proxy AOP (isso é coberto pelos testes
+ * de integração com servidor real).
  */
 class HttpExchangeRateProviderClientTest {
 
-	@Test
-	void returnsRateFromSuccessfulResponse() {
-		RestClient.Builder builder = RestClient.builder();
-		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-		server.expect(requestTo("/mock-provider/rates?base=USD&quote=BRL"))
-				.andExpect(method(HttpMethod.GET))
-				.andRespond(withSuccess(
-						"{\"base\":\"USD\",\"quote\":\"BRL\",\"rate\":5.45,\"timestamp\":\"2026-07-08T10:00:00Z\"}",
-						MediaType.APPLICATION_JSON));
-		HttpExchangeRateProviderClient client = new HttpExchangeRateProviderClient(builder.build());
+    @Test
+    void returnsRateFromSuccessfulResponse() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("/mock-provider/rates?base=USD&quote=BRL"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(
+                        withSuccess(
+                                "{\"base\":\"USD\",\"quote\":\"BRL\",\"rate\":5.45,\"timestamp\":\"2026-07-08T10:00:00Z\"}",
+                                MediaType.APPLICATION_JSON));
+        HttpExchangeRateProviderClient client = new HttpExchangeRateProviderClient(builder.build());
 
-		BigDecimal result = client.fetchRate("USD", "BRL");
+        BigDecimal result = client.fetchRate("USD", "BRL");
 
-		assertThat(result).isEqualByComparingTo(new BigDecimal("5.45"));
-	}
+        assertThat(result).isEqualByComparingTo(new BigDecimal("5.45"));
+    }
 
-	@Test
-	void propagatesRestClientExceptionOn503() {
-		RestClient.Builder builder = RestClient.builder();
-		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-		server.expect(requestTo("/mock-provider/rates?base=USD&quote=BRL"))
-				.andExpect(method(HttpMethod.GET))
-				.andRespond(withServerError());
-		HttpExchangeRateProviderClient client = new HttpExchangeRateProviderClient(builder.build());
+    @Test
+    void propagatesRestClientExceptionOn503() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("/mock-provider/rates?base=USD&quote=BRL"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withServerError());
+        HttpExchangeRateProviderClient client = new HttpExchangeRateProviderClient(builder.build());
 
-		assertThatThrownBy(() -> client.fetchRate("USD", "BRL"))
-				.isInstanceOf(RestClientException.class);
-	}
+        assertThatThrownBy(() -> client.fetchRate("USD", "BRL"))
+                .isInstanceOf(RestClientException.class);
+    }
 }

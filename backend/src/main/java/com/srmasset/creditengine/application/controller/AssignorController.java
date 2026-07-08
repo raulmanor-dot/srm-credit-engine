@@ -22,43 +22,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/assignors")
 public class AssignorController {
 
-	private final AssignorService assignorService;
+    private final AssignorService assignorService;
 
-	public AssignorController(AssignorService assignorService) {
-		this.assignorService = assignorService;
-	}
+    public AssignorController(AssignorService assignorService) {
+        this.assignorService = assignorService;
+    }
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public AssignorResponse create(@Valid @RequestBody AssignorRequest request) {
-		return AssignorResponse.from(assignorService.create(request.name(), request.taxId()));
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public AssignorResponse create(@Valid @RequestBody AssignorRequest request) {
+        return AssignorResponse.from(assignorService.create(request.name(), request.taxId()));
+    }
 
-	@GetMapping
-	public List<AssignorResponse> findAll() {
-		return assignorService.findAll().stream().map(AssignorResponse::from).toList();
-	}
+    @GetMapping
+    public List<AssignorResponse> findAll() {
+        return assignorService.findAll().stream().map(AssignorResponse::from).toList();
+    }
 
-	@GetMapping("/{id}")
-	public AssignorResponse findById(@PathVariable Long id) {
-		return AssignorResponse.from(assignorService.findById(id));
-	}
+    @GetMapping("/{id}")
+    public AssignorResponse findById(@PathVariable Long id) {
+        return AssignorResponse.from(assignorService.findById(id));
+    }
 
-	@PutMapping("/{id}")
-	public AssignorResponse update(@PathVariable Long id, @Valid @RequestBody AssignorUpdateRequest request) {
-		return AssignorResponse.from(assignorService.rename(id, request.name()));
-	}
+    @PutMapping("/{id}")
+    public AssignorResponse update(
+            @PathVariable Long id, @Valid @RequestBody AssignorUpdateRequest request) {
+        return AssignorResponse.from(assignorService.rename(id, request.name()));
+    }
 
-	// Soft delete: ver AssignorService.deactivate.
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-		assignorService.deactivate(id);
-		return ResponseEntity.noContent().build();
-	}
+    // Soft delete: ver AssignorService.deactivate.
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+        assignorService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
 
-	@PostMapping("/{id}/activate")
-	public ResponseEntity<Void> activate(@PathVariable Long id) {
-		assignorService.activate(id);
-		return ResponseEntity.noContent().build();
-	}
+    @PostMapping("/{id}/activate")
+    public ResponseEntity<Void> activate(@PathVariable Long id) {
+        assignorService.activate(id);
+        return ResponseEntity.noContent().build();
+    }
 }

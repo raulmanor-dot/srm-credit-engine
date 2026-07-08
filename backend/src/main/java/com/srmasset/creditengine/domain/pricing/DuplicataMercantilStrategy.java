@@ -5,8 +5,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class DuplicataMercantilStrategy extends AbstractCompoundInterestPricingStrategy {
 
-	@Override
-	public ReceivableTypeCode getType() {
-		return ReceivableTypeCode.DUPLICATA_MERCANTIL;
-	}
+    @Override
+    public ReceivableTypeCode getType() {
+        return ReceivableTypeCode.DUPLICATA_MERCANTIL;
+    }
 }

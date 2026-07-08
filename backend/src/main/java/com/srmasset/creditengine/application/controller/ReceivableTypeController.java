@@ -14,14 +14,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/receivable-types")
 public class ReceivableTypeController {
 
-	private final ReceivableTypeRepository receivableTypeRepository;
+    private final ReceivableTypeRepository receivableTypeRepository;
 
-	public ReceivableTypeController(ReceivableTypeRepository receivableTypeRepository) {
-		this.receivableTypeRepository = receivableTypeRepository;
-	}
+    public ReceivableTypeController(ReceivableTypeRepository receivableTypeRepository) {
+        this.receivableTypeRepository = receivableTypeRepository;
+    }
 
-	@GetMapping
-	public List<ReceivableTypeResponse> findAll() {
-		return receivableTypeRepository.findAll().stream().map(ReceivableTypeResponse::from).toList();
-	}
+    @GetMapping
+    public List<ReceivableTypeResponse> findAll() {
+        return receivableTypeRepository.findAll().stream()
+                .map(ReceivableTypeResponse::from)
+                .toList();
+    }
 }

@@ -473,10 +473,12 @@ para `main` e em todo Pull Request contra `main`:
 - **`frontend`**: `npm run lint` (oxlint) + `npm run build` (`tsc -b` +
   `vite build`) em `ubuntu-latest`. Falha de typecheck ou de lint quebra
   o build, não só o `vite build` em si.
-- Sem lint configurado para o backend (sem Checkstyle/Spotless no
-  `build.gradle`) — adicionar um agora reformataria todo o código
-  existente num PR que deveria ser só infraestrutura de CI; fica como
-  débito técnico registrado, não decisão silenciosa.
+- **Formatação do backend**: Spotless + Google Java Format (estilo AOSP,
+  4 espaços) no `build.gradle`, com `spotlessCheck` anexado à task `test`
+  — uma formatação inconsistente quebra `./gradlew test` localmente e o
+  job `backend` no CI, sem precisar de um job separado. Aplicado uma
+  única vez em todo o código existente (`./gradlew spotlessApply`), num
+  commit isolado de reformatação, sem mudança de lógica.
 - Cache: `actions/setup-java` (`cache: gradle`) e `actions/setup-node`
   (`cache: npm`, `cache-dependency-path: frontend/package-lock.json`) —
   builds subsequentes reaproveitam dependências já baixadas.

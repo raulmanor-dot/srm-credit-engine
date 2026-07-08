@@ -19,52 +19,57 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 /**
- * Requisito de concorrência do nível Sênior: duas "sessões" concorrentes que
- * carregaram o mesmo recebível não podem liquidá-lo duas vezes. Cada
- * chamada de repositório aqui roda na sua própria transação (a classe de
- * teste não é @Transactional), então os dois `findById` abaixo produzem
- * duas instâncias JPA independentes com o mesmo `version` — simulando de
- * fato duas requisições HTTP concorrentes, não uma race condition fake
- * dentro do mesmo persistence context.
+ * Requisito de concorrência do nível Sênior: duas "sessões" concorrentes que carregaram o mesmo
+ * recebível não podem liquidá-lo duas vezes. Cada chamada de repositório aqui roda na sua própria
+ * transação (a classe de teste não é @Transactional), então os dois `findById` abaixo produzem duas
+ * instâncias JPA independentes com o mesmo `version` — simulando de fato duas requisições HTTP
+ * concorrentes, não uma race condition fake dentro do mesmo persistence context.
  */
 class ReceivableOptimisticLockingIntegrationTest extends AbstractIntegrationTest {
 
-	@Autowired
-	private CurrencyRepository currencyRepository;
+    @Autowired private CurrencyRepository currencyRepository;
 
-	@Autowired
-	private ReceivableTypeRepository receivableTypeRepository;
+    @Autowired private ReceivableTypeRepository receivableTypeRepository;
 
-	@Autowired
-	private AssignorRepository assignorRepository;
+    @Autowired private AssignorRepository assignorRepository;
 
-	@Autowired
-	private ReceivableRepository receivableRepository;
+    @Autowired private ReceivableRepository receivableRepository;
 
-	@Test
-	void secondConcurrentSettlementAttemptIsRejectedByOptimisticLock() {
-		Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
-		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
-				.orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa Concorrencia", "22333444000122"));
+    @Test
+    void secondConcurrentSettlementAttemptIsRejectedByOptimisticLock() {
+        Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
+        ReceivableType duplicata =
+                receivableTypeRepository
+                        .findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
+                        .orElseThrow();
+        Assignor assignor =
+                assignorRepository.save(new Assignor("Empresa Concorrencia", "22333444000122"));
 
-		LocalDate today = LocalDate.now();
-		Receivable saved = receivableRepository.save(new Receivable(
-				assignor, duplicata, brl, new BigDecimal("1000.00"), "DOC-LOCK-1", today, today.plusDays(30)));
-		Long id = saved.getId();
+        LocalDate today = LocalDate.now();
+        Receivable saved =
+                receivableRepository.save(
+                        new Receivable(
+                                assignor,
+                                duplicata,
+                                brl,
+                                new BigDecimal("1000.00"),
+                                "DOC-LOCK-1",
+                                today,
+                                today.plusDays(30)));
+        Long id = saved.getId();
 
-		// duas "sessões" concorrentes carregam o mesmo estado (version = 0)
-		Receivable sessionA = receivableRepository.findById(id).orElseThrow();
-		Receivable sessionB = receivableRepository.findById(id).orElseThrow();
+        // duas "sessões" concorrentes carregam o mesmo estado (version = 0)
+        Receivable sessionA = receivableRepository.findById(id).orElseThrow();
+        Receivable sessionB = receivableRepository.findById(id).orElseThrow();
 
-		sessionA.markAsSettled();
-		receivableRepository.saveAndFlush(sessionA);
+        sessionA.markAsSettled();
+        receivableRepository.saveAndFlush(sessionA);
 
-		sessionB.markAsSettled();
-		assertThatThrownBy(() -> receivableRepository.saveAndFlush(sessionB))
-				.isInstanceOf(ObjectOptimisticLockingFailureException.class);
+        sessionB.markAsSettled();
+        assertThatThrownBy(() -> receivableRepository.saveAndFlush(sessionB))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
-		Receivable reloaded = receivableRepository.findById(id).orElseThrow();
-		assertThat(reloaded.getStatus()).isEqualTo(Receivable.Status.SETTLED);
-	}
+        Receivable reloaded = receivableRepository.findById(id).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(Receivable.Status.SETTLED);
+    }
 }

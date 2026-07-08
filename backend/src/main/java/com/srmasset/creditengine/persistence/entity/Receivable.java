@@ -22,160 +22,160 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name = "receivables")
 public class Receivable {
 
-	public enum Status {
-		PENDING,
-		SETTLED,
-		CANCELED
-	}
+    public enum Status {
+        PENDING,
+        SETTLED,
+        CANCELED
+    }
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "assignor_id")
-	private Assignor assignor;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "assignor_id")
+    private Assignor assignor;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "receivable_type_id")
-	private ReceivableType receivableType;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "receivable_type_id")
+    private ReceivableType receivableType;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "face_value_currency_id")
-	private Currency faceValueCurrency;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "face_value_currency_id")
+    private Currency faceValueCurrency;
 
-	@Column(name = "face_value", nullable = false, precision = 19, scale = 6)
-	private BigDecimal faceValue;
+    @Column(name = "face_value", nullable = false, precision = 19, scale = 6)
+    private BigDecimal faceValue;
 
-	@Column(name = "document_number")
-	private String documentNumber;
+    @Column(name = "document_number")
+    private String documentNumber;
 
-	@Column(name = "issue_date", nullable = false)
-	private LocalDate issueDate;
+    @Column(name = "issue_date", nullable = false)
+    private LocalDate issueDate;
 
-	@Column(name = "due_date", nullable = false)
-	private LocalDate dueDate;
+    @Column(name = "due_date", nullable = false)
+    private LocalDate dueDate;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private Status status = Status.PENDING;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status = Status.PENDING;
 
-	// Optimistic locking: concorrência na liquidação em lote é rejeitada aqui
-	// (defesa em profundidade junto com a constraint UNIQUE em settlements.receivable_id).
-	@Version
-	@Column(nullable = false)
-	private Long version;
+    // Optimistic locking: concorrência na liquidação em lote é rejeitada aqui
+    // (defesa em profundidade junto com a constraint UNIQUE em settlements.receivable_id).
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
-	// @CreationTimestamp/@UpdateTimestamp (não a coluna DEFAULT now() do banco):
-	// o Hibernate sempre envia o valor Java no INSERT/UPDATE, inclusive quando é
-	// null, o que sobrescreveria o DEFAULT do Postgres e violaria o NOT NULL.
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private OffsetDateTime createdAt;
+    // @CreationTimestamp/@UpdateTimestamp (não a coluna DEFAULT now() do banco):
+    // o Hibernate sempre envia o valor Java no INSERT/UPDATE, inclusive quando é
+    // null, o que sobrescreveria o DEFAULT do Postgres e violaria o NOT NULL.
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
-	@UpdateTimestamp
-	@Column(name = "updated_at", nullable = false)
-	private OffsetDateTime updatedAt;
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
-	protected Receivable() {
-	}
+    protected Receivable() {}
 
-	public Receivable(
-			Assignor assignor,
-			ReceivableType receivableType,
-			Currency faceValueCurrency,
-			BigDecimal faceValue,
-			String documentNumber,
-			LocalDate issueDate,
-			LocalDate dueDate) {
-		this.assignor = assignor;
-		this.receivableType = receivableType;
-		this.faceValueCurrency = faceValueCurrency;
-		this.faceValue = faceValue;
-		this.documentNumber = documentNumber;
-		this.issueDate = issueDate;
-		this.dueDate = dueDate;
-	}
+    public Receivable(
+            Assignor assignor,
+            ReceivableType receivableType,
+            Currency faceValueCurrency,
+            BigDecimal faceValue,
+            String documentNumber,
+            LocalDate issueDate,
+            LocalDate dueDate) {
+        this.assignor = assignor;
+        this.receivableType = receivableType;
+        this.faceValueCurrency = faceValueCurrency;
+        this.faceValue = faceValue;
+        this.documentNumber = documentNumber;
+        this.issueDate = issueDate;
+        this.dueDate = dueDate;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public Assignor getAssignor() {
-		return assignor;
-	}
+    public Assignor getAssignor() {
+        return assignor;
+    }
 
-	public ReceivableType getReceivableType() {
-		return receivableType;
-	}
+    public ReceivableType getReceivableType() {
+        return receivableType;
+    }
 
-	public Currency getFaceValueCurrency() {
-		return faceValueCurrency;
-	}
+    public Currency getFaceValueCurrency() {
+        return faceValueCurrency;
+    }
 
-	public BigDecimal getFaceValue() {
-		return faceValue;
-	}
+    public BigDecimal getFaceValue() {
+        return faceValue;
+    }
 
-	public String getDocumentNumber() {
-		return documentNumber;
-	}
+    public String getDocumentNumber() {
+        return documentNumber;
+    }
 
-	public LocalDate getIssueDate() {
-		return issueDate;
-	}
+    public LocalDate getIssueDate() {
+        return issueDate;
+    }
 
-	public LocalDate getDueDate() {
-		return dueDate;
-	}
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
 
-	public Status getStatus() {
-		return status;
-	}
+    public Status getStatus() {
+        return status;
+    }
 
-	public Long getVersion() {
-		return version;
-	}
+    public Long getVersion() {
+        return version;
+    }
 
-	public OffsetDateTime getCreatedAt() {
-		return createdAt;
-	}
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-	public OffsetDateTime getUpdatedAt() {
-		return updatedAt;
-	}
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 
-	// Transição de estado explícita (em vez de um setter genérico): impede
-	// liquidar duas vezes um recebível já SETTLED/CANCELED no próprio domínio,
-	// antes mesmo de chegar na constraint UNIQUE de settlements.
-	public void markAsSettled() {
-		if (status != Status.PENDING) {
-			throw new ReceivableNotPendingException(id, status);
-		}
-		this.status = Status.SETTLED;
-	}
+    // Transição de estado explícita (em vez de um setter genérico): impede
+    // liquidar duas vezes um recebível já SETTLED/CANCELED no próprio domínio,
+    // antes mesmo de chegar na constraint UNIQUE de settlements.
+    public void markAsSettled() {
+        if (status != Status.PENDING) {
+            throw new ReceivableNotPendingException(id, status);
+        }
+        this.status = Status.SETTLED;
+    }
 
-	// Cancelamento é só permitido a partir de PENDING pelo mesmo motivo de
-	// markAsSettled(): um recebível já liquidado tem um Settlement de auditoria
-	// vinculado e não pode ser desfeito por aqui.
-	public void markAsCanceled() {
-		if (status != Status.PENDING) {
-			throw new ReceivableNotPendingException(id, status);
-		}
-		this.status = Status.CANCELED;
-	}
+    // Cancelamento é só permitido a partir de PENDING pelo mesmo motivo de
+    // markAsSettled(): um recebível já liquidado tem um Settlement de auditoria
+    // vinculado e não pode ser desfeito por aqui.
+    public void markAsCanceled() {
+        if (status != Status.PENDING) {
+            throw new ReceivableNotPendingException(id, status);
+        }
+        this.status = Status.CANCELED;
+    }
 
-	// Só altera dados editáveis (valor, documento, datas) e só quando ainda
-	// PENDING — assignor/tipo/moeda são a identidade do recebível e não mudam
-	// após criado; uma vez liquidado, o snapshot de auditoria em Settlement já
-	// travou os valores usados, então editar aqui não pode retroagir sobre isso.
-	public void amend(BigDecimal faceValue, String documentNumber, LocalDate issueDate, LocalDate dueDate) {
-		if (status != Status.PENDING) {
-			throw new ReceivableNotPendingException(id, status);
-		}
-		this.faceValue = faceValue;
-		this.documentNumber = documentNumber;
-		this.issueDate = issueDate;
-		this.dueDate = dueDate;
-	}
+    // Só altera dados editáveis (valor, documento, datas) e só quando ainda
+    // PENDING — assignor/tipo/moeda são a identidade do recebível e não mudam
+    // após criado; uma vez liquidado, o snapshot de auditoria em Settlement já
+    // travou os valores usados, então editar aqui não pode retroagir sobre isso.
+    public void amend(
+            BigDecimal faceValue, String documentNumber, LocalDate issueDate, LocalDate dueDate) {
+        if (status != Status.PENDING) {
+            throw new ReceivableNotPendingException(id, status);
+        }
+        this.faceValue = faceValue;
+        this.documentNumber = documentNumber;
+        this.issueDate = issueDate;
+        this.dueDate = dueDate;
+    }
 }

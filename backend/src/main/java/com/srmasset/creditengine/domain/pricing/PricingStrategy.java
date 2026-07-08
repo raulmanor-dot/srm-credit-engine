@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 
 public interface PricingStrategy {
 
-	ReceivableTypeCode getType();
+    ReceivableTypeCode getType();
 
-	BigDecimal calculatePresentValue(Receivable receivable, BaseRate baseRate);
+    BigDecimal calculatePresentValue(Receivable receivable, BaseRate baseRate);
 }

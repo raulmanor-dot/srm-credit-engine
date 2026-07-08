@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ReceivableTypeRepository extends JpaRepository<ReceivableType, Long> {
 
-	Optional<ReceivableType> findByCode(ReceivableTypeCode code);
+    Optional<ReceivableType> findByCode(ReceivableTypeCode code);
 }

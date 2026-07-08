@@ -9,23 +9,22 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Caminho paralelo deliberado (item 3.6 do enunciado, ver README): o
- * {@code ReportController} fala diretamente com este repositório, com SQL
- * nativo, sem passar por {@code SettlementService}, {@code PricingStrategy}
- * ou qualquer entidade JPA. É leitura pura para relatório — não há regra de
+ * Caminho paralelo deliberado (item 3.6 do enunciado, ver README): o {@code ReportController} fala
+ * diretamente com este repositório, com SQL nativo, sem passar por {@code SettlementService},
+ * {@code PricingStrategy} ou qualquer entidade JPA. É leitura pura para relatório — não há regra de
  * negócio a proteger aqui, então o atalho arquitetural é aceitável.
  *
- * <p>Sem query de {@code COUNT(*)} companion (sem total de páginas) —
- * mantém este caminho deliberadamente mínimo; adicione uma se uma UI
- * precisar de indicador de páginas.
+ * <p>Sem query de {@code COUNT(*)} companion (sem total de páginas) — mantém este caminho
+ * deliberadamente mínimo; adicione uma se uma UI precisar de indicador de páginas.
  */
 @Repository
 public class SettlementReportRepository {
 
-	private static final int DEFAULT_PAGE_SIZE = 50;
-	private static final int MAX_PAGE_SIZE = 200;
+    private static final int DEFAULT_PAGE_SIZE = 50;
+    private static final int MAX_PAGE_SIZE = 200;
 
-	private static final String STATEMENT_SQL = """
+    private static final String STATEMENT_SQL =
+            """
 			SELECT s.id AS settlement_id,
 			       r.document_number,
 			       a.name AS assignor_name,
@@ -50,36 +49,41 @@ public class SettlementReportRepository {
 			LIMIT :limit OFFSET :offset
 			""";
 
-	private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-	public SettlementReportRepository(NamedParameterJdbcTemplate jdbcTemplate) {
-		this.jdbcTemplate = jdbcTemplate;
-	}
+    public SettlementReportRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
-	public List<SettlementStatementRow> findStatements(
-			LocalDate fromDate, LocalDate toDate, Long assignorId, int page, int size) {
-		int pageSize = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
-		int offset = Math.max(page, 0) * pageSize;
+    public List<SettlementStatementRow> findStatements(
+            LocalDate fromDate, LocalDate toDate, Long assignorId, int page, int size) {
+        int pageSize = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
+        int offset = Math.max(page, 0) * pageSize;
 
-		MapSqlParameterSource params = new MapSqlParameterSource()
-				.addValue("fromDate", fromDate, Types.DATE)
-				.addValue("toDate", toDate, Types.DATE)
-				.addValue("assignorId", assignorId, Types.BIGINT)
-				.addValue("limit", pageSize)
-				.addValue("offset", offset);
+        MapSqlParameterSource params =
+                new MapSqlParameterSource()
+                        .addValue("fromDate", fromDate, Types.DATE)
+                        .addValue("toDate", toDate, Types.DATE)
+                        .addValue("assignorId", assignorId, Types.BIGINT)
+                        .addValue("limit", pageSize)
+                        .addValue("offset", offset);
 
-		return jdbcTemplate.query(STATEMENT_SQL, params, (rs, rowNum) -> new SettlementStatementRow(
-				rs.getLong("settlement_id"),
-				rs.getString("document_number"),
-				rs.getString("assignor_name"),
-				rs.getBigDecimal("face_value"),
-				rs.getString("face_value_currency_code"),
-				rs.getBigDecimal("present_value_face_currency"),
-				rs.getBigDecimal("net_value_payment_currency"),
-				rs.getString("payment_currency_code"),
-				rs.getBigDecimal("base_rate_used"),
-				rs.getBigDecimal("spread_used"),
-				rs.getBigDecimal("fx_rate_used"),
-				rs.getObject("settled_at", OffsetDateTime.class)));
-	}
+        return jdbcTemplate.query(
+                STATEMENT_SQL,
+                params,
+                (rs, rowNum) ->
+                        new SettlementStatementRow(
+                                rs.getLong("settlement_id"),
+                                rs.getString("document_number"),
+                                rs.getString("assignor_name"),
+                                rs.getBigDecimal("face_value"),
+                                rs.getString("face_value_currency_code"),
+                                rs.getBigDecimal("present_value_face_currency"),
+                                rs.getBigDecimal("net_value_payment_currency"),
+                                rs.getString("payment_currency_code"),
+                                rs.getBigDecimal("base_rate_used"),
+                                rs.getBigDecimal("spread_used"),
+                                rs.getBigDecimal("fx_rate_used"),
+                                rs.getObject("settled_at", OffsetDateTime.class)));
+    }
 }

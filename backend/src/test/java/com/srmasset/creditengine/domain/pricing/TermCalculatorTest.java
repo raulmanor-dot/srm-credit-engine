@@ -10,32 +10,33 @@ import org.junit.jupiter.api.Test;
 
 class TermCalculatorTest {
 
-	@Test
-	void thirtyDayTermIsExactlyOneMonth() {
-		LocalDate from = LocalDate.of(2026, 1, 1);
-		LocalDate to = from.plusDays(30);
+    @Test
+    void thirtyDayTermIsExactlyOneMonth() {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = from.plusDays(30);
 
-		BigDecimal months = TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT);
+        BigDecimal months = TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT);
 
-		assertThat(months).isEqualByComparingTo(new BigDecimal("1"));
-	}
+        assertThat(months).isEqualByComparingTo(new BigDecimal("1"));
+    }
 
-	@Test
-	void supportsFractionalTerms() {
-		LocalDate from = LocalDate.of(2026, 1, 1);
-		LocalDate to = from.plusDays(45);
+    @Test
+    void supportsFractionalTerms() {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = from.plusDays(45);
 
-		BigDecimal months = TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT);
+        BigDecimal months = TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT);
 
-		assertThat(months).isEqualByComparingTo(new BigDecimal("1.5"));
-	}
+        assertThat(months).isEqualByComparingTo(new BigDecimal("1.5"));
+    }
 
-	@Test
-	void rejectsDueDateBeforeReferenceDate() {
-		LocalDate from = LocalDate.of(2026, 1, 10);
-		LocalDate to = LocalDate.of(2026, 1, 1);
+    @Test
+    void rejectsDueDateBeforeReferenceDate() {
+        LocalDate from = LocalDate.of(2026, 1, 10);
+        LocalDate to = LocalDate.of(2026, 1, 1);
 
-		assertThatThrownBy(() -> TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT))
-				.isInstanceOf(IllegalArgumentException.class);
-	}
+        assertThatThrownBy(
+                        () -> TermCalculator.monthsBetween(from, to, MathConstants.PRICING_CONTEXT))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

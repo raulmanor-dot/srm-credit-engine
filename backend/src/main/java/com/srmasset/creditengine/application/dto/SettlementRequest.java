@@ -7,8 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record SettlementRequest(
-		@NotNull Long receivableId,
-		@NotBlank String paymentCurrencyCode,
-		@NotNull @Positive BigDecimal baseRateMonthlyPercent,
-		LocalDate referenceDate) {
-}
+        @NotNull Long receivableId,
+        @NotBlank String paymentCurrencyCode,
+        @NotNull @Positive BigDecimal baseRateMonthlyPercent,
+        LocalDate referenceDate) {}
