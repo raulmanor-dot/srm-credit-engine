@@ -24,49 +24,59 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/receivables")
 public class ReceivableController {
 
-	private final ReceivableService receivableService;
+    private final ReceivableService receivableService;
 
-	public ReceivableController(ReceivableService receivableService) {
-		this.receivableService = receivableService;
-	}
+    public ReceivableController(ReceivableService receivableService) {
+        this.receivableService = receivableService;
+    }
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public ReceivableResponse create(@Valid @RequestBody ReceivableRequest request) {
-		return ReceivableResponse.from(receivableService.create(
-				request.assignorId(),
-				request.receivableTypeId(),
-				request.faceValueCurrencyId(),
-				request.faceValue(),
-				request.documentNumber(),
-				request.issueDate(),
-				request.dueDate()));
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReceivableResponse create(@Valid @RequestBody ReceivableRequest request) {
+        return ReceivableResponse.from(
+                receivableService.create(
+                        request.assignorId(),
+                        request.receivableTypeId(),
+                        request.faceValueCurrencyId(),
+                        request.faceValue(),
+                        request.documentNumber(),
+                        request.issueDate(),
+                        request.dueDate()));
+    }
 
-	@GetMapping
-	public List<ReceivableResponse> findAll(
-			@RequestParam(required = false) Receivable.Status status, @RequestParam(required = false) Long assignorId) {
-		return receivableService.findAll(status, assignorId).stream().map(ReceivableResponse::from).toList();
-	}
+    @GetMapping
+    public List<ReceivableResponse> findAll(
+            @RequestParam(required = false) Receivable.Status status,
+            @RequestParam(required = false) Long assignorId) {
+        return receivableService.findAll(status, assignorId).stream()
+                .map(ReceivableResponse::from)
+                .toList();
+    }
 
-	@GetMapping("/{id}")
-	public ReceivableResponse findById(@PathVariable Long id) {
-		return ReceivableResponse.from(receivableService.findById(id));
-	}
+    @GetMapping("/{id}")
+    public ReceivableResponse findById(@PathVariable Long id) {
+        return ReceivableResponse.from(receivableService.findById(id));
+    }
 
-	// Só permitido enquanto o recebível está PENDING (ver Receivable.amend).
-	@PutMapping("/{id}")
-	public ReceivableResponse update(@PathVariable Long id, @Valid @RequestBody ReceivableUpdateRequest request) {
-		return ReceivableResponse.from(receivableService.update(
-				id, request.faceValue(), request.documentNumber(), request.issueDate(), request.dueDate()));
-	}
+    // Só permitido enquanto o recebível está PENDING (ver Receivable.amend).
+    @PutMapping("/{id}")
+    public ReceivableResponse update(
+            @PathVariable Long id, @Valid @RequestBody ReceivableUpdateRequest request) {
+        return ReceivableResponse.from(
+                receivableService.update(
+                        id,
+                        request.faceValue(),
+                        request.documentNumber(),
+                        request.issueDate(),
+                        request.dueDate()));
+    }
 
-	// "Excluir" um recebível é cancelá-lo (transição de estado), não apagar a
-	// linha: preserva o histórico e é bloqueado se já SETTLED (ver
-	// Receivable.markAsCanceled).
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> cancel(@PathVariable Long id) {
-		receivableService.cancel(id);
-		return ResponseEntity.noContent().build();
-	}
+    // "Excluir" um recebível é cancelá-lo (transição de estado), não apagar a
+    // linha: preserva o histórico e é bloqueado se já SETTLED (ver
+    // Receivable.markAsCanceled).
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancel(@PathVariable Long id) {
+        receivableService.cancel(id);
+        return ResponseEntity.noContent().build();
+    }
 }

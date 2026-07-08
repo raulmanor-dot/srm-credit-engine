@@ -33,95 +33,109 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Sobe um servidor HTTP real numa porta fixa (necessário para que
- * {@code HttpExchangeRateProviderClient} consiga de fato chamar
- * {@code /mock-provider/rates} da própria aplicação — {@code MockMvc}
- * sozinho, sem porta ouvindo, não seria suficiente). Sem caos (failure-rate
- * 0.0) para exercitar o caminho feliz de forma determinística.
+ * Sobe um servidor HTTP real numa porta fixa (necessário para que {@code
+ * HttpExchangeRateProviderClient} consiga de fato chamar {@code /mock-provider/rates} da própria
+ * aplicação — {@code MockMvc} sozinho, sem porta ouvindo, não seria suficiente). Sem caos
+ * (failure-rate 0.0) para exercitar o caminho feliz de forma determinística.
  *
- * <p>Usa um par de moedas dedicado (EUR/JPY, criado aqui, não seedado pela
- * V7) em vez de USD/BRL: como {@code exchange_rates} é append-only e o
- * Postgres do Testcontainers é um singleton compartilhado por toda a suíte
- * (ver {@link AbstractIntegrationTest}), inserir uma cotação fresca para
- * USD/BRL contaminaria permanentemente o "latest rate" que outros testes
- * (ex.: {@code SettlementControllerIntegrationTest}) esperam ser exatamente
- * o valor seedado em V7.
+ * <p>Usa um par de moedas dedicado (EUR/JPY, criado aqui, não seedado pela V7) em vez de USD/BRL:
+ * como {@code exchange_rates} é append-only e o Postgres do Testcontainers é um singleton
+ * compartilhado por toda a suíte (ver {@link AbstractIntegrationTest}), inserir uma cotação fresca
+ * para USD/BRL contaminaria permanentemente o "latest rate" que outros testes (ex.: {@code
+ * SettlementControllerIntegrationTest}) esperam ser exatamente o valor seedado em V7.
  */
 @AutoConfigureMockMvc
-@SpringBootTest(webEnvironment = WebEnvironment.DEFINED_PORT, properties = {
-		"server.port=18081",
-		"app.exchange-rate-provider.enabled=true",
-		"app.exchange-rate-provider.base-url=http://localhost:18081",
-		"app.mock-provider.failure-rate=0.0",
-		"app.mock-provider.max-latency-ms=0",
-		"app.mock-provider.rates.EUR-JPY=165.500000"})
+@SpringBootTest(
+        webEnvironment = WebEnvironment.DEFINED_PORT,
+        properties = {
+            "server.port=18081",
+            "app.exchange-rate-provider.enabled=true",
+            "app.exchange-rate-provider.base-url=http://localhost:18081",
+            "app.mock-provider.failure-rate=0.0",
+            "app.mock-provider.max-latency-ms=0",
+            "app.mock-provider.rates.EUR-JPY=165.500000"
+        })
 class ExchangeRateProviderHappyPathIntegrationTest extends AbstractIntegrationTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-	@Autowired
-	private CurrencyRepository currencyRepository;
+    @Autowired private CurrencyRepository currencyRepository;
 
-	@Autowired
-	private ReceivableTypeRepository receivableTypeRepository;
+    @Autowired private ReceivableTypeRepository receivableTypeRepository;
 
-	@Autowired
-	private AssignorRepository assignorRepository;
+    @Autowired private AssignorRepository assignorRepository;
 
-	@Autowired
-	private ReceivableRepository receivableRepository;
+    @Autowired private ReceivableRepository receivableRepository;
 
-	@Autowired
-	private SettlementRepository settlementRepository;
+    @Autowired private SettlementRepository settlementRepository;
 
-	@Autowired
-	private ExchangeRateRepository exchangeRateRepository;
+    @Autowired private ExchangeRateRepository exchangeRateRepository;
 
-	@Test
-	void mockProviderEndpointReturnsJitteredRate() throws Exception {
-		mockMvc.perform(get("/mock-provider/rates").param("base", "EUR").param("quote", "JPY"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.base").value("EUR"))
-				.andExpect(jsonPath("$.quote").value("JPY"));
-	}
+    @Test
+    void mockProviderEndpointReturnsJitteredRate() throws Exception {
+        mockMvc.perform(get("/mock-provider/rates").param("base", "EUR").param("quote", "JPY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.base").value("EUR"))
+                .andExpect(jsonPath("$.quote").value("JPY"));
+    }
 
-	@Test
-	void mockProviderReturns404ForUnknownPair() throws Exception {
-		mockMvc.perform(get("/mock-provider/rates").param("base", "XAU").param("quote", "XAG"))
-				.andExpect(status().isNotFound());
-	}
+    @Test
+    void mockProviderReturns404ForUnknownPair() throws Exception {
+        mockMvc.perform(get("/mock-provider/rates").param("base", "XAU").param("quote", "XAG"))
+                .andExpect(status().isNotFound());
+    }
 
-	@Test
-	void crossCurrencySettlementPersistsFreshProviderRateAppendOnly() throws Exception {
-		Currency eur = currencyRepository.findByCode("EUR").orElseGet(() -> currencyRepository.save(new Currency("EUR", "Euro")));
-		currencyRepository.findByCode("JPY").orElseGet(() -> currencyRepository.save(new Currency("JPY", "Iene Japones")));
-		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL).orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa Happy Path", "11222333000199"));
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = receivableRepository.save(new Receivable(
-				assignor, duplicata, eur, new BigDecimal("10000.00"), "DOC-PROVIDER-1", referenceDate, referenceDate.plusDays(30)));
+    @Test
+    void crossCurrencySettlementPersistsFreshProviderRateAppendOnly() throws Exception {
+        Currency eur =
+                currencyRepository
+                        .findByCode("EUR")
+                        .orElseGet(() -> currencyRepository.save(new Currency("EUR", "Euro")));
+        currencyRepository
+                .findByCode("JPY")
+                .orElseGet(() -> currencyRepository.save(new Currency("JPY", "Iene Japones")));
+        ReceivableType duplicata =
+                receivableTypeRepository
+                        .findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
+                        .orElseThrow();
+        Assignor assignor =
+                assignorRepository.save(new Assignor("Empresa Happy Path", "11222333000199"));
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable =
+                receivableRepository.save(
+                        new Receivable(
+                                assignor,
+                                duplicata,
+                                eur,
+                                new BigDecimal("10000.00"),
+                                "DOC-PROVIDER-1",
+                                referenceDate,
+                                referenceDate.plusDays(30)));
 
-		long ratesBefore = exchangeRateRepository.count();
+        long ratesBefore = exchangeRateRepository.count();
 
-		SettlementRequest request = new SettlementRequest(receivable.getId(), "JPY", new BigDecimal("2.0"), referenceDate);
-		mockMvc.perform(post("/settlements")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk());
+        SettlementRequest request =
+                new SettlementRequest(
+                        receivable.getId(), "JPY", new BigDecimal("2.0"), referenceDate);
+        mockMvc.perform(
+                        post("/settlements")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
 
-		Settlement settlement = settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
-		assertThat(settlement.getFxRateUsed()).isNotNull();
+        Settlement settlement =
+                settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
+        assertThat(settlement.getFxRateUsed()).isNotNull();
 
-		long ratesAfter = exchangeRateRepository.count();
-		assertThat(ratesAfter).isEqualTo(ratesBefore + 1);
-		ExchangeRate newestRate = exchangeRateRepository.findAll().stream()
-				.max(Comparator.comparing(ExchangeRate::getValidFrom))
-				.orElseThrow();
-		assertThat(newestRate.getSource()).isEqualTo(ExchangeRate.Source.MOCK_PROVIDER);
-		assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(newestRate.getRate());
-	}
+        long ratesAfter = exchangeRateRepository.count();
+        assertThat(ratesAfter).isEqualTo(ratesBefore + 1);
+        ExchangeRate newestRate =
+                exchangeRateRepository.findAll().stream()
+                        .max(Comparator.comparing(ExchangeRate::getValidFrom))
+                        .orElseThrow();
+        assertThat(newestRate.getSource()).isEqualTo(ExchangeRate.Source.MOCK_PROVIDER);
+        assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(newestRate.getRate());
+    }
 }

@@ -19,62 +19,67 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class AssignorControllerIntegrationTest extends AbstractIntegrationTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-	@Test
-	void createsFindsUpdatesAndDeactivatesAnAssignor() throws Exception {
-		AssignorRequest createRequest = new AssignorRequest("Empresa Alpha", "11222333000144");
+    @Test
+    void createsFindsUpdatesAndDeactivatesAnAssignor() throws Exception {
+        AssignorRequest createRequest = new AssignorRequest("Empresa Alpha", "11222333000144");
 
-		String body = mockMvc.perform(post("/assignors")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(createRequest)))
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.name").value("Empresa Alpha"))
-				.andExpect(jsonPath("$.taxId").value("11222333000144"))
-				.andExpect(jsonPath("$.active").value(true))
-				.andReturn()
-				.getResponse()
-				.getContentAsString();
+        String body =
+                mockMvc.perform(
+                                post("/assignors")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createRequest)))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.name").value("Empresa Alpha"))
+                        .andExpect(jsonPath("$.taxId").value("11222333000144"))
+                        .andExpect(jsonPath("$.active").value(true))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-		Long id = objectMapper.readTree(body).get("id").asLong();
+        Long id = objectMapper.readTree(body).get("id").asLong();
 
-		mockMvc.perform(get("/assignors/{id}", id))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.name").value("Empresa Alpha"));
+        mockMvc.perform(get("/assignors/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Empresa Alpha"));
 
-		AssignorUpdateRequest updateRequest = new AssignorUpdateRequest("Empresa Alpha Ltda");
-		mockMvc.perform(put("/assignors/{id}", id)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(updateRequest)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.name").value("Empresa Alpha Ltda"));
+        AssignorUpdateRequest updateRequest = new AssignorUpdateRequest("Empresa Alpha Ltda");
+        mockMvc.perform(
+                        put("/assignors/{id}", id)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Empresa Alpha Ltda"));
 
-		mockMvc.perform(delete("/assignors/{id}", id)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/assignors/{id}", id)).andExpect(status().isNoContent());
 
-		mockMvc.perform(get("/assignors/{id}", id)).andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));
-	}
+        mockMvc.perform(get("/assignors/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+    }
 
-	@Test
-	void returnsConflictForDuplicateTaxId() throws Exception {
-		AssignorRequest request = new AssignorRequest("Empresa Beta", "99888777000166");
+    @Test
+    void returnsConflictForDuplicateTaxId() throws Exception {
+        AssignorRequest request = new AssignorRequest("Empresa Beta", "99888777000166");
 
-		mockMvc.perform(post("/assignors")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isCreated());
+        mockMvc.perform(
+                        post("/assignors")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
 
-		mockMvc.perform(post("/assignors")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isConflict());
-	}
+        mockMvc.perform(
+                        post("/assignors")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+    }
 
-	@Test
-	void returnsNotFoundForUnknownAssignor() throws Exception {
-		mockMvc.perform(get("/assignors/{id}", 999999L)).andExpect(status().isNotFound());
-	}
+    @Test
+    void returnsNotFoundForUnknownAssignor() throws Exception {
+        mockMvc.perform(get("/assignors/{id}", 999999L)).andExpect(status().isNotFound());
+    }
 }

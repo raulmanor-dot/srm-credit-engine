@@ -15,74 +15,74 @@ import java.time.OffsetDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * Linha de uma série temporal append-only: nunca é atualizada (o próprio
- * banco rejeita UPDATE/DELETE via trigger). Uma nova cotação = uma nova linha.
+ * Linha de uma série temporal append-only: nunca é atualizada (o próprio banco rejeita
+ * UPDATE/DELETE via trigger). Uma nova cotação = uma nova linha.
  */
 @Entity
 @Table(name = "exchange_rates")
 public class ExchangeRate {
 
-	public enum Source {
-		MANUAL,
-		MOCK_PROVIDER
-	}
+    public enum Source {
+        MANUAL,
+        MOCK_PROVIDER
+    }
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "base_currency_id")
-	private Currency baseCurrency;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "base_currency_id")
+    private Currency baseCurrency;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "quote_currency_id")
-	private Currency quoteCurrency;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "quote_currency_id")
+    private Currency quoteCurrency;
 
-	@Column(nullable = false, precision = 19, scale = 6)
-	private BigDecimal rate;
+    @Column(nullable = false, precision = 19, scale = 6)
+    private BigDecimal rate;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private Source source;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Source source;
 
-	// Ver Receivable.createdAt: sem @CreationTimestamp, o Hibernate manda NULL
-	// explícito no INSERT e o DEFAULT now() do Postgres nunca é acionado.
-	@CreationTimestamp
-	@Column(name = "valid_from", nullable = false)
-	private OffsetDateTime validFrom;
+    // Ver Receivable.createdAt: sem @CreationTimestamp, o Hibernate manda NULL
+    // explícito no INSERT e o DEFAULT now() do Postgres nunca é acionado.
+    @CreationTimestamp
+    @Column(name = "valid_from", nullable = false)
+    private OffsetDateTime validFrom;
 
-	protected ExchangeRate() {
-	}
+    protected ExchangeRate() {}
 
-	public ExchangeRate(Currency baseCurrency, Currency quoteCurrency, BigDecimal rate, Source source) {
-		this.baseCurrency = baseCurrency;
-		this.quoteCurrency = quoteCurrency;
-		this.rate = rate;
-		this.source = source;
-	}
+    public ExchangeRate(
+            Currency baseCurrency, Currency quoteCurrency, BigDecimal rate, Source source) {
+        this.baseCurrency = baseCurrency;
+        this.quoteCurrency = quoteCurrency;
+        this.rate = rate;
+        this.source = source;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public Currency getBaseCurrency() {
-		return baseCurrency;
-	}
+    public Currency getBaseCurrency() {
+        return baseCurrency;
+    }
 
-	public Currency getQuoteCurrency() {
-		return quoteCurrency;
-	}
+    public Currency getQuoteCurrency() {
+        return quoteCurrency;
+    }
 
-	public BigDecimal getRate() {
-		return rate;
-	}
+    public BigDecimal getRate() {
+        return rate;
+    }
 
-	public Source getSource() {
-		return source;
-	}
+    public Source getSource() {
+        return source;
+    }
 
-	public OffsetDateTime getValidFrom() {
-		return validFrom;
-	}
+    public OffsetDateTime getValidFrom() {
+        return validFrom;
+    }
 }

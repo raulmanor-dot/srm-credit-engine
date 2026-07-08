@@ -11,52 +11,51 @@ import jakarta.persistence.Table;
 @Table(name = "assignors")
 public class Assignor {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(nullable = false)
-	private String name;
+    @Column(nullable = false)
+    private String name;
 
-	@Column(name = "tax_id", nullable = false, unique = true)
-	private String taxId;
+    @Column(name = "tax_id", nullable = false, unique = true)
+    private String taxId;
 
-	@Column(nullable = false)
-	private boolean active = true;
+    @Column(nullable = false)
+    private boolean active = true;
 
-	protected Assignor() {
-	}
+    protected Assignor() {}
 
-	public Assignor(String name, String taxId) {
-		this.name = name;
-		this.taxId = taxId;
-	}
+    public Assignor(String name, String taxId) {
+        this.name = name;
+        this.taxId = taxId;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public String getTaxId() {
-		return taxId;
-	}
+    public String getTaxId() {
+        return taxId;
+    }
 
-	public boolean isActive() {
-		return active;
-	}
+    public boolean isActive() {
+        return active;
+    }
 
-	public void rename(String name) {
-		this.name = name;
-	}
+    public void rename(String name) {
+        this.name = name;
+    }
 
-	public void deactivate() {
-		this.active = false;
-	}
+    public void deactivate() {
+        this.active = false;
+    }
 
-	public void activate() {
-		this.active = true;
-	}
+    public void activate() {
+        this.active = true;
+    }
 }

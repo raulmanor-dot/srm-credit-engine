@@ -20,53 +20,66 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class SettlementController {
 
-	private final SettlementService settlementService;
-	private final SettlementBatchService settlementBatchService;
+    private final SettlementService settlementService;
+    private final SettlementBatchService settlementBatchService;
 
-	public SettlementController(SettlementService settlementService, SettlementBatchService settlementBatchService) {
-		this.settlementService = settlementService;
-		this.settlementBatchService = settlementBatchService;
-	}
+    public SettlementController(
+            SettlementService settlementService, SettlementBatchService settlementBatchService) {
+        this.settlementService = settlementService;
+        this.settlementBatchService = settlementBatchService;
+    }
 
-	@PostMapping("/settlements")
-	public SettlementResponse settle(@Valid @RequestBody SettlementRequest request) {
-		LocalDate referenceDate = request.referenceDate() != null ? request.referenceDate() : LocalDate.now();
-		BaseRate baseRate = new BaseRate(request.baseRateMonthlyPercent(), referenceDate);
+    @PostMapping("/settlements")
+    public SettlementResponse settle(@Valid @RequestBody SettlementRequest request) {
+        LocalDate referenceDate =
+                request.referenceDate() != null ? request.referenceDate() : LocalDate.now();
+        BaseRate baseRate = new BaseRate(request.baseRateMonthlyPercent(), referenceDate);
 
-		Settlement settlement = settlementService.settle(request.receivableId(), request.paymentCurrencyCode(), baseRate);
+        Settlement settlement =
+                settlementService.settle(
+                        request.receivableId(), request.paymentCurrencyCode(), baseRate);
 
-		return toResponse(settlement);
-	}
+        return toResponse(settlement);
+    }
 
-	@PostMapping("/settlements/batch")
-	public BatchSettlementResponse settleBatch(@Valid @RequestBody BatchSettlementRequest request) {
-		LocalDate referenceDate = request.referenceDate() != null ? request.referenceDate() : LocalDate.now();
-		BaseRate baseRate = new BaseRate(request.baseRateMonthlyPercent(), referenceDate);
+    @PostMapping("/settlements/batch")
+    public BatchSettlementResponse settleBatch(@Valid @RequestBody BatchSettlementRequest request) {
+        LocalDate referenceDate =
+                request.referenceDate() != null ? request.referenceDate() : LocalDate.now();
+        BaseRate baseRate = new BaseRate(request.baseRateMonthlyPercent(), referenceDate);
 
-		List<BatchSettlementItemResult> results = settlementBatchService.settleBatch(
-				request.receivableIds(), request.paymentCurrencyCode(), baseRate);
+        List<BatchSettlementItemResult> results =
+                settlementBatchService.settleBatch(
+                        request.receivableIds(), request.paymentCurrencyCode(), baseRate);
 
-		List<BatchSettlementItemResponse> responses = results.stream()
-				.map(r -> new BatchSettlementItemResponse(r.receivableId(), r.success(), r.settlementId(), r.errorMessage()))
-				.toList();
+        List<BatchSettlementItemResponse> responses =
+                results.stream()
+                        .map(
+                                r ->
+                                        new BatchSettlementItemResponse(
+                                                r.receivableId(),
+                                                r.success(),
+                                                r.settlementId(),
+                                                r.errorMessage()))
+                        .toList();
 
-		return new BatchSettlementResponse(responses);
-	}
+        return new BatchSettlementResponse(responses);
+    }
 
-	private SettlementResponse toResponse(Settlement settlement) {
-		return new SettlementResponse(
-				settlement.getId(),
-				settlement.getReceivable().getId(),
-				settlement.getFaceValue(),
-				settlement.getFaceValueCurrency().getCode(),
-				settlement.getPresentValueFaceCurrency(),
-				settlement.getNetValuePaymentCurrency(),
-				settlement.getPaymentCurrency().getCode(),
-				settlement.getFxRateUsed(),
-				settlement.getBaseRateUsed(),
-				settlement.getSpreadUsed(),
-				settlement.getTermDays(),
-				settlement.getTermMonths(),
-				settlement.getSettledAt());
-	}
+    private SettlementResponse toResponse(Settlement settlement) {
+        return new SettlementResponse(
+                settlement.getId(),
+                settlement.getReceivable().getId(),
+                settlement.getFaceValue(),
+                settlement.getFaceValueCurrency().getCode(),
+                settlement.getPresentValueFaceCurrency(),
+                settlement.getNetValuePaymentCurrency(),
+                settlement.getPaymentCurrency().getCode(),
+                settlement.getFxRateUsed(),
+                settlement.getBaseRateUsed(),
+                settlement.getSpreadUsed(),
+                settlement.getTermDays(),
+                settlement.getTermMonths(),
+                settlement.getSettledAt());
+    }
 }

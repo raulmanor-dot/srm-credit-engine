@@ -9,20 +9,23 @@ import org.junit.jupiter.api.Test;
 
 class PricingStrategyResolverTest {
 
-	private final PricingStrategyResolver resolver = new PricingStrategyResolver(
-			List.of(new DuplicataMercantilStrategy(), new ChequePreDatadoStrategy()));
+    private final PricingStrategyResolver resolver =
+            new PricingStrategyResolver(
+                    List.of(new DuplicataMercantilStrategy(), new ChequePreDatadoStrategy()));
 
-	@Test
-	void resolvesEachRegisteredType() {
-		assertThat(resolver.resolve(ReceivableTypeCode.DUPLICATA_MERCANTIL)).isInstanceOf(DuplicataMercantilStrategy.class);
-		assertThat(resolver.resolve(ReceivableTypeCode.CHEQUE_PRE_DATADO)).isInstanceOf(ChequePreDatadoStrategy.class);
-	}
+    @Test
+    void resolvesEachRegisteredType() {
+        assertThat(resolver.resolve(ReceivableTypeCode.DUPLICATA_MERCANTIL))
+                .isInstanceOf(DuplicataMercantilStrategy.class);
+        assertThat(resolver.resolve(ReceivableTypeCode.CHEQUE_PRE_DATADO))
+                .isInstanceOf(ChequePreDatadoStrategy.class);
+    }
 
-	@Test
-	void throwsForUnregisteredType() {
-		PricingStrategyResolver emptyResolver = new PricingStrategyResolver(List.of());
+    @Test
+    void throwsForUnregisteredType() {
+        PricingStrategyResolver emptyResolver = new PricingStrategyResolver(List.of());
 
-		assertThatThrownBy(() -> emptyResolver.resolve(ReceivableTypeCode.DUPLICATA_MERCANTIL))
-				.isInstanceOf(UnsupportedReceivableTypeException.class);
-	}
+        assertThatThrownBy(() -> emptyResolver.resolve(ReceivableTypeCode.DUPLICATA_MERCANTIL))
+                .isInstanceOf(UnsupportedReceivableTypeException.class);
+    }
 }

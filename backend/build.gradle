@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.4'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.srmasset'
@@ -60,8 +61,19 @@ dependencies {
 	testImplementation 'org.testcontainers:postgresql'
 }
 
+spotless {
+	java {
+		target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+		googleJavaFormat('1.22.0').aosp()
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+	dependsOn 'spotlessCheck'
 }
 
 // Subconjunto rápido (sem Testcontainers/Docker) usado pelo git hook de

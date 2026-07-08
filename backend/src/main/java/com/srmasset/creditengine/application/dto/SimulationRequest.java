@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record SimulationRequest(
-		@NotNull Long receivableId,
-		@NotNull @Positive BigDecimal baseRateMonthlyPercent,
-		LocalDate referenceDate) {
-}
+        @NotNull Long receivableId,
+        @NotNull @Positive BigDecimal baseRateMonthlyPercent,
+        LocalDate referenceDate) {}

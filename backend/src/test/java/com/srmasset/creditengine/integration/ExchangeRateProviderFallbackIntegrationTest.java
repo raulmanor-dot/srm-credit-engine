@@ -35,120 +35,150 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Mock provider sempre falha ({@code failure-rate=1.0}): a liquidação nunca
- * pode travar por isso — deve cair para a última taxa conhecida no banco.
- * Roda numa porta fixa própria (18082) para não colidir com o contexto do
- * teste "happy path" (cada {@code @SpringBootTest} distinto sobe seu próprio
- * ApplicationContext e servidor embutido).
+ * Mock provider sempre falha ({@code failure-rate=1.0}): a liquidação nunca pode travar por isso —
+ * deve cair para a última taxa conhecida no banco. Roda numa porta fixa própria (18082) para não
+ * colidir com o contexto do teste "happy path" (cada {@code @SpringBootTest} distinto sobe seu
+ * próprio ApplicationContext e servidor embutido).
  *
- * <p>Usa um par de moedas dedicado (GBP/CHF, com uma taxa MANUAL seedada
- * pelo próprio teste) em vez de USD/BRL — mesma razão do teste "happy path":
- * evitar contaminar o par que outros testes assumem ser exatamente o
- * seedado em V7, já que {@code exchange_rates} é append-only e o Postgres
- * é compartilhado por toda a suíte.
+ * <p>Usa um par de moedas dedicado (GBP/CHF, com uma taxa MANUAL seedada pelo próprio teste) em vez
+ * de USD/BRL — mesma razão do teste "happy path": evitar contaminar o par que outros testes assumem
+ * ser exatamente o seedado em V7, já que {@code exchange_rates} é append-only e o Postgres é
+ * compartilhado por toda a suíte.
  */
 @AutoConfigureMockMvc
-@SpringBootTest(webEnvironment = WebEnvironment.DEFINED_PORT, properties = {
-		"server.port=18082",
-		"app.exchange-rate-provider.enabled=true",
-		"app.exchange-rate-provider.base-url=http://localhost:18082",
-		"app.mock-provider.failure-rate=1.0",
-		"app.mock-provider.max-latency-ms=0"})
+@SpringBootTest(
+        webEnvironment = WebEnvironment.DEFINED_PORT,
+        properties = {
+            "server.port=18082",
+            "app.exchange-rate-provider.enabled=true",
+            "app.exchange-rate-provider.base-url=http://localhost:18082",
+            "app.mock-provider.failure-rate=1.0",
+            "app.mock-provider.max-latency-ms=0"
+        })
 class ExchangeRateProviderFallbackIntegrationTest extends AbstractIntegrationTest {
 
-	private static final BigDecimal SEEDED_GBP_CHF_RATE = new BigDecimal("1.250000");
+    private static final BigDecimal SEEDED_GBP_CHF_RATE = new BigDecimal("1.250000");
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-	@Autowired
-	private CurrencyRepository currencyRepository;
+    @Autowired private CurrencyRepository currencyRepository;
 
-	@Autowired
-	private ReceivableTypeRepository receivableTypeRepository;
+    @Autowired private ReceivableTypeRepository receivableTypeRepository;
 
-	@Autowired
-	private AssignorRepository assignorRepository;
+    @Autowired private AssignorRepository assignorRepository;
 
-	@Autowired
-	private ReceivableRepository receivableRepository;
+    @Autowired private ReceivableRepository receivableRepository;
 
-	@Autowired
-	private SettlementRepository settlementRepository;
+    @Autowired private SettlementRepository settlementRepository;
 
-	@Autowired
-	private ExchangeRateRepository exchangeRateRepository;
+    @Autowired private ExchangeRateRepository exchangeRateRepository;
 
-	@Autowired
-	private ExchangeRateProvider exchangeRateProvider;
+    @Autowired private ExchangeRateProvider exchangeRateProvider;
 
-	@Autowired
-	private CircuitBreakerRegistry circuitBreakerRegistry;
+    @Autowired private CircuitBreakerRegistry circuitBreakerRegistry;
 
-	private Currency gbp;
-	private Currency chf;
+    private Currency gbp;
+    private Currency chf;
 
-	@BeforeEach
-	void setUp() {
-		circuitBreakerRegistry.circuitBreaker(HttpExchangeRateProviderClient.RESILIENCE_INSTANCE).reset();
-		gbp = currencyRepository.findByCode("GBP").orElseGet(() -> currencyRepository.save(new Currency("GBP", "Libra Esterlina")));
-		chf = currencyRepository.findByCode("CHF").orElseGet(() -> currencyRepository.save(new Currency("CHF", "Franco Suico")));
-		exchangeRateRepository.save(new ExchangeRate(gbp, chf, SEEDED_GBP_CHF_RATE, ExchangeRate.Source.MANUAL));
-	}
+    @BeforeEach
+    void setUp() {
+        circuitBreakerRegistry
+                .circuitBreaker(HttpExchangeRateProviderClient.RESILIENCE_INSTANCE)
+                .reset();
+        gbp =
+                currencyRepository
+                        .findByCode("GBP")
+                        .orElseGet(
+                                () ->
+                                        currencyRepository.save(
+                                                new Currency("GBP", "Libra Esterlina")));
+        chf =
+                currencyRepository
+                        .findByCode("CHF")
+                        .orElseGet(
+                                () -> currencyRepository.save(new Currency("CHF", "Franco Suico")));
+        exchangeRateRepository.save(
+                new ExchangeRate(gbp, chf, SEEDED_GBP_CHF_RATE, ExchangeRate.Source.MANUAL));
+    }
 
-	private Receivable newPendingReceivable(String documentNumber, LocalDate referenceDate) {
-		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL).orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa " + documentNumber, "1" + documentNumber.hashCode() + "000199"));
-		return receivableRepository.save(new Receivable(
-				assignor, duplicata, gbp, new BigDecimal("10000.00"), documentNumber, referenceDate, referenceDate.plusDays(30)));
-	}
+    private Receivable newPendingReceivable(String documentNumber, LocalDate referenceDate) {
+        ReceivableType duplicata =
+                receivableTypeRepository
+                        .findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
+                        .orElseThrow();
+        Assignor assignor =
+                assignorRepository.save(
+                        new Assignor(
+                                "Empresa " + documentNumber,
+                                "1" + documentNumber.hashCode() + "000199"));
+        return receivableRepository.save(
+                new Receivable(
+                        assignor,
+                        duplicata,
+                        gbp,
+                        new BigDecimal("10000.00"),
+                        documentNumber,
+                        referenceDate,
+                        referenceDate.plusDays(30)));
+    }
 
-	@Test
-	void settlementFallsBackToStoredSeedRateWhenProviderAlwaysFails() throws Exception {
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = newPendingReceivable("DOC-FALLBACK-1", referenceDate);
-		long ratesBefore = exchangeRateRepository.count();
+    @Test
+    void settlementFallsBackToStoredSeedRateWhenProviderAlwaysFails() throws Exception {
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable = newPendingReceivable("DOC-FALLBACK-1", referenceDate);
+        long ratesBefore = exchangeRateRepository.count();
 
-		SettlementRequest request = new SettlementRequest(receivable.getId(), "CHF", new BigDecimal("2.0"), referenceDate);
-		mockMvc.perform(post("/settlements")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk());
+        SettlementRequest request =
+                new SettlementRequest(
+                        receivable.getId(), "CHF", new BigDecimal("2.0"), referenceDate);
+        mockMvc.perform(
+                        post("/settlements")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
 
-		Settlement settlement = settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
-		assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(SEEDED_GBP_CHF_RATE);
-		assertThat(exchangeRateRepository.count()).isEqualTo(ratesBefore);
+        Settlement settlement =
+                settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
+        assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(SEEDED_GBP_CHF_RATE);
+        assertThat(exchangeRateRepository.count()).isEqualTo(ratesBefore);
 
-		CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(HttpExchangeRateProviderClient.RESILIENCE_INSTANCE);
-		assertThat(circuitBreaker.getMetrics().getNumberOfFailedCalls()).isGreaterThan(0);
-	}
+        CircuitBreaker circuitBreaker =
+                circuitBreakerRegistry.circuitBreaker(
+                        HttpExchangeRateProviderClient.RESILIENCE_INSTANCE);
+        assertThat(circuitBreaker.getMetrics().getNumberOfFailedCalls()).isGreaterThan(0);
+    }
 
-	@Test
-	void circuitBreakerOpensAfterRepeatedFailuresAndSettlementStillSucceeds() throws Exception {
-		CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(HttpExchangeRateProviderClient.RESILIENCE_INSTANCE);
+    @Test
+    void circuitBreakerOpensAfterRepeatedFailuresAndSettlementStillSucceeds() throws Exception {
+        CircuitBreaker circuitBreaker =
+                circuitBreakerRegistry.circuitBreaker(
+                        HttpExchangeRateProviderClient.RESILIENCE_INSTANCE);
 
-		for (int i = 0; i < 6 && circuitBreaker.getState() != CircuitBreaker.State.OPEN; i++) {
-			try {
-				exchangeRateProvider.fetchRate("GBP", "CHF");
-			} catch (Exception ignored) {
-				// esperado: provedor sempre falha nesta suíte
-			}
-		}
-		assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+        for (int i = 0; i < 6 && circuitBreaker.getState() != CircuitBreaker.State.OPEN; i++) {
+            try {
+                exchangeRateProvider.fetchRate("GBP", "CHF");
+            } catch (Exception ignored) {
+                // esperado: provedor sempre falha nesta suíte
+            }
+        }
+        assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
-		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
-		Receivable receivable = newPendingReceivable("DOC-FALLBACK-2", referenceDate);
-		SettlementRequest request = new SettlementRequest(receivable.getId(), "CHF", new BigDecimal("2.0"), referenceDate);
+        LocalDate referenceDate = LocalDate.of(2026, 7, 7);
+        Receivable receivable = newPendingReceivable("DOC-FALLBACK-2", referenceDate);
+        SettlementRequest request =
+                new SettlementRequest(
+                        receivable.getId(), "CHF", new BigDecimal("2.0"), referenceDate);
 
-		mockMvc.perform(post("/settlements")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk());
+        mockMvc.perform(
+                        post("/settlements")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
 
-		Settlement settlement = settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
-		assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(SEEDED_GBP_CHF_RATE);
-	}
+        Settlement settlement =
+                settlementRepository.findByReceivableId(receivable.getId()).orElseThrow();
+        assertThat(settlement.getFxRateUsed()).isEqualByComparingTo(SEEDED_GBP_CHF_RATE);
+    }
 }

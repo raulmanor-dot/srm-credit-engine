@@ -6,8 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ReceivableUpdateRequest(
-		@NotNull @Positive BigDecimal faceValue,
-		String documentNumber,
-		@NotNull LocalDate issueDate,
-		@NotNull LocalDate dueDate) {
-}
+        @NotNull @Positive BigDecimal faceValue,
+        String documentNumber,
+        @NotNull LocalDate issueDate,
+        @NotNull LocalDate dueDate) {}

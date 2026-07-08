@@ -10,14 +10,14 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(ExchangeRateProviderProperties.class)
 public class ExchangeRateProviderConfig {
 
-	@Bean
-	RestClient exchangeRateProviderRestClient(ExchangeRateProviderProperties properties) {
-		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-		requestFactory.setConnectTimeout((int) properties.connectTimeout().toMillis());
-		requestFactory.setReadTimeout((int) properties.readTimeout().toMillis());
-		return RestClient.builder()
-				.baseUrl(properties.baseUrl())
-				.requestFactory(requestFactory)
-				.build();
-	}
+    @Bean
+    RestClient exchangeRateProviderRestClient(ExchangeRateProviderProperties properties) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout((int) properties.connectTimeout().toMillis());
+        requestFactory.setReadTimeout((int) properties.readTimeout().toMillis());
+        return RestClient.builder()
+                .baseUrl(properties.baseUrl())
+                .requestFactory(requestFactory)
+                .build();
+    }
 }

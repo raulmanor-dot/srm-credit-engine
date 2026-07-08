@@ -22,43 +22,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/currencies")
 public class CurrencyController {
 
-	private final CurrencyService currencyService;
+    private final CurrencyService currencyService;
 
-	public CurrencyController(CurrencyService currencyService) {
-		this.currencyService = currencyService;
-	}
+    public CurrencyController(CurrencyService currencyService) {
+        this.currencyService = currencyService;
+    }
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public CurrencyResponse create(@Valid @RequestBody CurrencyRequest request) {
-		return CurrencyResponse.from(currencyService.create(request.code(), request.name()));
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CurrencyResponse create(@Valid @RequestBody CurrencyRequest request) {
+        return CurrencyResponse.from(currencyService.create(request.code(), request.name()));
+    }
 
-	@GetMapping
-	public List<CurrencyResponse> findAll() {
-		return currencyService.findAll().stream().map(CurrencyResponse::from).toList();
-	}
+    @GetMapping
+    public List<CurrencyResponse> findAll() {
+        return currencyService.findAll().stream().map(CurrencyResponse::from).toList();
+    }
 
-	@GetMapping("/{id}")
-	public CurrencyResponse findById(@PathVariable Long id) {
-		return CurrencyResponse.from(currencyService.findById(id));
-	}
+    @GetMapping("/{id}")
+    public CurrencyResponse findById(@PathVariable Long id) {
+        return CurrencyResponse.from(currencyService.findById(id));
+    }
 
-	@PutMapping("/{id}")
-	public CurrencyResponse update(@PathVariable Long id, @Valid @RequestBody CurrencyUpdateRequest request) {
-		return CurrencyResponse.from(currencyService.rename(id, request.name()));
-	}
+    @PutMapping("/{id}")
+    public CurrencyResponse update(
+            @PathVariable Long id, @Valid @RequestBody CurrencyUpdateRequest request) {
+        return CurrencyResponse.from(currencyService.rename(id, request.name()));
+    }
 
-	// Soft delete: ver CurrencyService.deactivate.
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-		currencyService.deactivate(id);
-		return ResponseEntity.noContent().build();
-	}
+    // Soft delete: ver CurrencyService.deactivate.
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+        currencyService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
 
-	@PostMapping("/{id}/activate")
-	public ResponseEntity<Void> activate(@PathVariable Long id) {
-		currencyService.activate(id);
-		return ResponseEntity.noContent().build();
-	}
+    @PostMapping("/{id}/activate")
+    public ResponseEntity<Void> activate(@PathVariable Long id) {
+        currencyService.activate(id);
+        return ResponseEntity.noContent().build();
+    }
 }
