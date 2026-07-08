@@ -49,10 +49,13 @@ banco (ver testes em `domain/pricing/*Test.java`, quando existirem).
 
 O **extrato de liquidação** é o caso deliberado que quebra essa regra: o
 enunciado permite (item 3.6) um caminho paralelo `ReportController →
-ReportRepository` com SQL nativo, pulando `domain/`. Isso ainda não foi
-implementado nesta fase; quando for, o README vai marcar explicitamente esse
-atalho arquitetural e por que ele é aceitável (leitura pura, sem regra de
-negócio, otimizada para relatório).
+SettlementReportRepository`, com SQL nativo (`NamedParameterJdbcTemplate`),
+pulando `SettlementService`, `PricingStrategy` e as entidades JPA por
+completo — `GET /reports/settlements` é leitura pura para relatório, sem
+invariante de negócio a proteger, então o atalho é aceitável. O repositório
+retorna um `record` de projeção (`persistence.report.SettlementStatementRow`)
+diretamente na resposta HTTP, sem remapear para um DTO — remapear
+esconderia o próprio ponto que esse endpoint demonstra.
 
 ## Motor de precificação
 
@@ -92,8 +95,9 @@ Todos os valores monetários são `NUMERIC(19,6)`.
 
 Concorrência na liquidação: [ADR 0004](docs/adr/0004-concurrency-control-settlement.md)
 descreve a defesa em duas camadas (`@Version` em `receivables` + `UNIQUE` em
-`settlements.receivable_id`) e a estratégia de transação em lote (a decidir
-quando o serviço de liquidação for implementado).
+`settlements.receivable_id`) e a estratégia de lote item a item, incluindo o
+mecanismo de `@Transactional(REQUIRES_NEW)` em bean separado que evita a
+armadilha clássica de auto-invocação em proxies do Spring.
 
 ## Status atual
 
@@ -112,18 +116,27 @@ Implementado neste commit:
 - [x] Testes unitários do motor de precificação (10 testes, sem Spring
       context nem banco — `TermCalculator`, as duas Strategies e o
       `PricingStrategyResolver`)
+- [x] Serviço de liquidação (`SettlementService`): calcula valor presente,
+      converte para a moeda de pagamento quando necessário (via
+      `ExchangeRateService`, com lookup bidirecional — funciona mesmo quando
+      só existe a taxa no sentido inverso ao seed) e persiste o `Settlement`
+      como snapshot de auditoria completo
+- [x] Liquidação em lote item a item (`SettlementBatchService`) — decisão e
+      mecanismo de transação (`REQUIRES_NEW` em bean separado) documentados
+      na [ADR 0004](docs/adr/0004-concurrency-control-settlement.md)
+- [x] `POST /settlements` e `POST /settlements/batch`
+- [x] `ReportController` / `SettlementReportRepository`: caminho paralelo com
+      SQL nativo (`NamedParameterJdbcTemplate`), pulando `SettlementService`
+      e as entidades JPA — exatamente o atalho permitido pelo item 3.6
 - [x] Testes de integração com Testcontainers/Postgres real: fluxo completo
       do `POST /simulations`, optimistic locking em `receivables.version` sob
-      concorrência real, e a constraint `UNIQUE` de `settlements.receivable_id`
+      concorrência real, a constraint `UNIQUE` de `settlements.receivable_id`,
+      liquidação em lote com falha parcial, e o relatório
       (ver observação sobre ambiente local abaixo)
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`), controller
-      de liquidação
-- [ ] `ReportController` / `ReportRepository` (caminho paralelo, SQL nativo)
-- [ ] Serviço de liquidação (conversão cambial + persistência de auditoria +
-      decisão sobre transação em lote vs item a item)
+- [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`)
 - [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
 - [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio)
 - [ ] Docker Compose (app, Postgres, Prometheus, Grafana)

@@ -1,5 +1,6 @@
 package com.srmasset.creditengine.persistence.entity;
 
+import com.srmasset.creditengine.domain.exception.ReceivableNotPendingException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -149,7 +150,7 @@ public class Receivable {
 	// antes mesmo de chegar na constraint UNIQUE de settlements.
 	public void markAsSettled() {
 		if (status != Status.PENDING) {
-			throw new IllegalStateException("Receivable " + id + " is not PENDING (current status: " + status + ")");
+			throw new ReceivableNotPendingException(id, status);
 		}
 		this.status = Status.SETTLED;
 	}
