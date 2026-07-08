@@ -22,21 +22,36 @@ Defesa em duas camadas independentes:
 `settlements` também tem seu próprio `version` (`@Version`), preparando o
 terreno para eventuais correções/estornos controlados no futuro.
 
-## Decisão pendente (a resolver quando o serviço de liquidação em lote for
-implementado)
+## Decisão: liquidação em lote item a item
 
-Duas opções para o lote, ainda em aberto:
+Escolhido **item a item, com status individual** em vez de tudo-ou-nada: um
+recebível problemático (já liquidado, optimistic lock, câmbio ausente) não
+pode bloquear a liquidação dos demais itens do lote — operacionalmente, isso
+seria inaceitável (99 liquidações válidas represadas por 1 inválida).
 
-- **Tudo ou nada**: uma única `@Transactional` para o lote inteiro; qualquer
-  item que falhe (recebível já liquidado, tipo sem Strategy, etc.) faz
-  rollback de todo o lote.
-- **Item a item com status individual**: cada item processado em sua própria
-  transação; o lote retorna um relatório por item (sucesso/falha), sem
-  reverter os itens que já passaram.
+Implementação (`SettlementService` + `SettlementBatchService`):
 
-Este README/ADR será atualizado com a escolha e a justificativa assim que o
-serviço de liquidação for implementado — registrar aqui a intenção evita que
-a decisão pareça acidental quando o código chegar.
+- `SettlementService.settle(...)` é `@Transactional(propagation =
+  Propagation.REQUIRES_NEW)` — cada liquidação é sua própria unidade
+  atômica, sempre, independente de quem a chama.
+- `SettlementBatchService` injeta `SettlementService` como **bean separado**
+  e itera a lista chamando `settlementService.settle(...)` dentro de um
+  `try/catch` por item, agregando um resultado (sucesso ou mensagem de erro)
+  por `receivableId`.
+- O motivo do bean separado: se o laço e o método transacional estivessem
+  na mesma classe, uma chamada `this.settle(...)` não passaria pelo proxy
+  do Spring (auto-invocação não é interceptada por proxies AOP), e o
+  `REQUIRES_NEW` nunca seria acionado — o item silenciosamente rodaria
+  dentro da transação (inexistente) do chamador. Injetar como colaborador
+  garante que cada chamada é uma chamada externa de verdade ao proxy.
+- `SettlementBatchService.settleBatch(...)` **não** é `@Transactional`: uma
+  transação ali não mudaria o isolamento por item (`REQUIRES_NEW` sempre
+  suspende qualquer transação em curso), só manteria uma conexão aberta
+  pela duração inteira do lote sem necessidade.
+
+Trade-off aceito: para lotes muito grandes, isso abre/fecha mais conexões
+ao longo do tempo do que uma única transação grande — inerente à escolha de
+commits independentes por item, não um problema a esta escala.
 
 ## Consequências
 

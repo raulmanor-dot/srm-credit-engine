@@ -19,11 +19,16 @@ public final class TermCalculator {
 	private TermCalculator() {
 	}
 
-	public static BigDecimal monthsBetween(LocalDate referenceDate, LocalDate dueDate, MathContext mc) {
+	public static long daysBetween(LocalDate referenceDate, LocalDate dueDate) {
 		long days = ChronoUnit.DAYS.between(referenceDate, dueDate);
 		if (days < 0) {
 			throw new IllegalArgumentException("dueDate must not be before referenceDate");
 		}
+		return days;
+	}
+
+	public static BigDecimal monthsBetween(LocalDate referenceDate, LocalDate dueDate, MathContext mc) {
+		long days = daysBetween(referenceDate, dueDate);
 		return BigDecimal.valueOf(days).divide(DAYS_PER_MONTH, mc);
 	}
 }
