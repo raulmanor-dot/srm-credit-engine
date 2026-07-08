@@ -16,6 +16,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -80,6 +81,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDomainPrecondition(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ErrorResponse.of(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage()));
+    }
+
+    // 404: sem handler específico, o catch-all de Exception abaixo transformaria a
+    // resolução normal de "rota inexistente" do Spring num 500 assustador — GET / (sem
+    // controller mapeado) e qualquer typo de path devem continuar respondendo 404 puro.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(HttpStatus.NOT_FOUND, "Resource not found"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -9,6 +9,7 @@ import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 import './index.css';
 import App from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 const queryClient = new QueryClient();
 
@@ -16,11 +17,13 @@ createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<MantineProvider defaultColorScheme="auto">
 			<Notifications />
-			<QueryClientProvider client={queryClient}>
-				<BrowserRouter>
-					<App />
-				</BrowserRouter>
-			</QueryClientProvider>
+			<ErrorBoundary>
+				<QueryClientProvider client={queryClient}>
+					<BrowserRouter>
+						<App />
+					</BrowserRouter>
+				</QueryClientProvider>
+			</ErrorBoundary>
 		</MantineProvider>
 	</StrictMode>,
 );
