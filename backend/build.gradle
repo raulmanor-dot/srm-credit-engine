@@ -7,6 +7,11 @@ plugins {
 group = 'com.srmasset'
 version = '0.1.0'
 
+// Override da versão de Testcontainers gerenciada pelo BOM do Spring Boot
+// 3.3.4 (que traz 1.19.8), via a propriedade que io.spring.dependency-management
+// lê do BOM — sem precisar declarar um BOM próprio do Testcontainers.
+ext['testcontainers.version'] = '1.21.3'
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
@@ -33,6 +38,13 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Testes de integração contra Postgres real (não H2): migrations Flyway,
+	// constraints e triggers do banco (unique, append-only) só são fiéis a
+	// produção rodando no mesmo motor de banco usado em produção.
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 }
 
 tasks.named('test') {

@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * Linha de uma série temporal append-only: nunca é atualizada (o próprio
@@ -45,6 +46,9 @@ public class ExchangeRate {
 	@Column(nullable = false, length = 20)
 	private Source source;
 
+	// Ver Receivable.createdAt: sem @CreationTimestamp, o Hibernate manda NULL
+	// explícito no INSERT e o DEFAULT now() do Postgres nunca é acionado.
+	@CreationTimestamp
 	@Column(name = "valid_from", nullable = false)
 	private OffsetDateTime validFrom;
 

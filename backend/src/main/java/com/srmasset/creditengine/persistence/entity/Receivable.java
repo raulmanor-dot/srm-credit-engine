@@ -14,6 +14,8 @@ import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "receivables")
@@ -63,9 +65,14 @@ public class Receivable {
 	@Column(nullable = false)
 	private Long version;
 
+	// @CreationTimestamp/@UpdateTimestamp (não a coluna DEFAULT now() do banco):
+	// o Hibernate sempre envia o valor Java no INSERT/UPDATE, inclusive quando é
+	// null, o que sobrescreveria o DEFAULT do Postgres e violaria o NOT NULL.
+	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private OffsetDateTime createdAt;
 
+	@UpdateTimestamp
 	@Column(name = "updated_at", nullable = false)
 	private OffsetDateTime updatedAt;
 
@@ -135,5 +142,15 @@ public class Receivable {
 
 	public OffsetDateTime getUpdatedAt() {
 		return updatedAt;
+	}
+
+	// Transição de estado explícita (em vez de um setter genérico): impede
+	// liquidar duas vezes um recebível já SETTLED/CANCELED no próprio domínio,
+	// antes mesmo de chegar na constraint UNIQUE de settlements.
+	public void markAsSettled() {
+		if (status != Status.PENDING) {
+			throw new IllegalStateException("Receivable " + id + " is not PENDING (current status: " + status + ")");
+		}
+		this.status = Status.SETTLED;
 	}
 }

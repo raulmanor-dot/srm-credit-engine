@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "currencies")
@@ -25,6 +26,9 @@ public class Currency {
 	@Column(nullable = false)
 	private boolean active = true;
 
+	// Ver Receivable.createdAt: sem @CreationTimestamp, o Hibernate manda NULL
+	// explícito no INSERT e o DEFAULT now() do Postgres nunca é acionado.
+	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private OffsetDateTime createdAt;
 
