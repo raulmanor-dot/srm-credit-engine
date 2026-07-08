@@ -538,6 +538,10 @@ se paga aqui.
     métricas + Grafana), resiliência (retry/circuit breaker), frontend
     (Painel do Operador + Grid de Transações), CI/CD, massa de dados de
     demonstração e lint/formatter (Spotless) no backend.
+- **Simulação de gestão de crise** (nível Especialista/Staff): um bug crítico de
+  precificação foi mergeado na `main` (PR #22) e revertido com `git revert` —
+  ver [docs/crisis-simulation.md](docs/crisis-simulation.md) para o incidente
+  completo, como passou pelo CI e como foi detectado.
 
 ## Decisões de arquitetura (ADRs)
 

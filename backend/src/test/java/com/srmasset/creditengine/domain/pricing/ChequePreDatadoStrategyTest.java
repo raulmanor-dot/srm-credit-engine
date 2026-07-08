@@ -54,5 +54,9 @@ class ChequePreDatadoStrategyTest {
                 BigDecimal.valueOf(expectedDouble).setScale(2, RoundingMode.HALF_EVEN);
 
         assertThat(presentValue.setScale(2, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
+
+        // Guarda de sanidade financeira: com taxa total positiva, o valor presente
+        // NUNCA pode superar o valor de face — ver docs/crisis-simulation.md.
+        assertThat(presentValue).isLessThan(receivable.getFaceValue());
     }
 }

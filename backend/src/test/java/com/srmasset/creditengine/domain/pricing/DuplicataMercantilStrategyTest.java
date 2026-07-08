@@ -53,6 +53,13 @@ class DuplicataMercantilStrategyTest {
                         .divide(new BigDecimal("1.035"), 6, RoundingMode.HALF_EVEN);
 
         assertThat(presentValue.setScale(6, RoundingMode.HALF_EVEN)).isEqualByComparingTo(expected);
+
+        // Guarda de sanidade financeira: com taxa total positiva, o valor presente
+        // NUNCA pode superar o valor de face — regressão do incidente descrito em
+        // docs/crisis-simulation.md, onde inverter o sinal do spread produzia o
+        // contrário (PV > faceValue) sem quebrar a igualdade acima, porque o valor
+        // esperado tinha sido recalculado para "concordar" com o bug.
+        assertThat(presentValue).isLessThan(receivable.getFaceValue());
     }
 
     @Test
