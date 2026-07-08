@@ -1,0 +1,16 @@
+#!/bin/sh
+# Valida que a mensagem de commit segue Conventional Commits
+# (feat, fix, chore, test, docs, refactor, build, ci, perf, style).
+# Instalado via: git config core.hooksPath .githooks (ver README).
+
+MSG_FILE="$1"
+FIRST_LINE=$(head -n1 "$MSG_FILE")
+PATTERN='^(feat|fix|chore|test|docs|refactor|build|ci|perf|style)(\([a-z0-9._-]+\))?!?: .+'
+
+if ! echo "$FIRST_LINE" | grep -qE "$PATTERN"; then
+	echo "[commit-msg] mensagem fora do padrao Conventional Commits:"
+	echo "  \"$FIRST_LINE\""
+	echo "  esperado: <tipo>[escopo opcional]: descricao"
+	echo "  tipos aceitos: feat, fix, chore, test, docs, refactor, build, ci, perf, style"
+	exit 1
+fi

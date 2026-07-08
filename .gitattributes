@@ -1,0 +1,4 @@
+# Scripts shell precisam de LF sempre (CRLF quebra o shebang no Git Bash/Linux/CI).
+.githooks/* text eol=lf
+*.sh text eol=lf
+gradlew text eol=lf

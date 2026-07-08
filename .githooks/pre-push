@@ -1,0 +1,10 @@
+#!/bin/sh
+# Roda os testes unitários (sem Docker/Testcontainers) antes de qualquer push.
+# Instalado via: git config core.hooksPath .githooks (ver README).
+set -e
+
+echo "[pre-push] rodando testes unitários (backend/gradlew unitTest)..."
+cd "$(git rev-parse --show-toplevel)/backend" || exit 1
+./gradlew --console=plain unitTest
+
+echo "[pre-push] ok, testes unitários passaram."
