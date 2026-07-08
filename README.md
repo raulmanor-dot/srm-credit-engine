@@ -10,6 +10,9 @@ Este README é vivo — atualizado a cada fase de implementação. Ele documenta
 não só o que existe, mas as decisões técnicas por trás, porque é isso que se
 espera de nível Sênior nesta avaliação.
 
+Uso de IA neste projeto (prompts estratégicos, erros e correções, análise
+crítica): [AI_USAGE.md](AI_USAGE.md).
+
 ## Escopo do desafio (referência)
 
 - Cadastro de cedentes, recebíveis e tipos de recebível (com spread
@@ -65,6 +68,9 @@ invariante de negócio a proteger, então o atalho é aceitável. O repositório
 retorna um `record` de projeção (`persistence.report.SettlementStatementRow`)
 diretamente na resposta HTTP, sem remapear para um DTO — remapear
 esconderia o próprio ponto que esse endpoint demonstra.
+
+Visão C4 (contexto e containers): [docs/diagrams/c4-context.md](docs/diagrams/c4-context.md)
+e [docs/diagrams/c4-container.md](docs/diagrams/c4-container.md).
 
 ## Motor de precificação
 
@@ -288,6 +294,8 @@ Migrations Flyway em `backend/src/main/resources/db/migration`:
 
 Todos os valores monetários são `NUMERIC(19,6)`.
 
+Diagrama ER completo (com notas de modelagem): [docs/diagrams/er-diagram.md](docs/diagrams/er-diagram.md).
+
 Concorrência na liquidação: [ADR 0004](docs/adr/0004-concurrency-control-settlement.md)
 descreve a defesa em duas camadas (`@Version` em `receivables` + `UNIQUE` em
 `settlements.receivable_id`) e a estratégia de lote item a item, incluindo o
@@ -403,6 +411,8 @@ docker compose up --build
 A API fica disponível em `http://localhost:8080` (ex.: `POST
 /simulations`) e o Postgres em `localhost:5432` (`srm`/`srm`,
 banco `srm_credit_engine` — sobrescrevível via `.env`, ver `.env.example`).
+Documentação interativa da API (Swagger UI): `http://localhost:8080/swagger-ui/index.html`
+(spec OpenAPI em `/v3/api-docs`).
 As migrations Flyway rodam automaticamente no boot. Healthcheck de cada
 serviço:
 
