@@ -24,8 +24,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * em diante. O start manual em bloco estático garante uma única
  * inicialização por JVM; o Ryuk (reaper do Testcontainers) ainda limpa o
  * container na saída da JVM.
+ *
+ * <p>{@code app.exchange-rate-provider.enabled=false}: este contexto sobe
+ * com {@code webEnvironment=MOCK} (sem porta HTTP real ouvindo), então uma
+ * chamada de verdade ao provedor mock (self-HTTP-call) falharia ou, pior,
+ * acertaria por acidente um servidor de dev na 8080. Testes que precisam do
+ * provedor habilitado (ver {@code ExchangeRateProviderHappyPathIntegrationTest}
+ * / {@code ExchangeRateProviderFallbackIntegrationTest}) sobem com
+ * {@code DEFINED_PORT} e redeclaram essa propriedade.
  */
-@SpringBootTest
+@SpringBootTest(properties = "app.exchange-rate-provider.enabled=false")
 public abstract class AbstractIntegrationTest {
 
 	@ServiceConnection

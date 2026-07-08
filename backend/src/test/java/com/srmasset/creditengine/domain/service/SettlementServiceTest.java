@@ -90,7 +90,7 @@ class SettlementServiceTest {
 		Receivable receivable = newReceivable(brl, referenceDate);
 		when(receivableRepository.findById(1L)).thenReturn(Optional.of(receivable));
 		when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
-		when(exchangeRateService.findLatestRate(brl, usd)).thenReturn(new BigDecimal("0.185185"));
+		when(exchangeRateService.getCurrentRate(brl, usd)).thenReturn(new BigDecimal("0.185185"));
 		when(settlementRepository.saveAndFlush(any(Settlement.class))).thenAnswer(inv -> inv.getArgument(0));
 		when(receivableRepository.saveAndFlush(receivable)).thenReturn(receivable);
 

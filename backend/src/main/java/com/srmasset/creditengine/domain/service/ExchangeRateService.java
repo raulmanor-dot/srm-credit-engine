@@ -1,11 +1,16 @@
 package com.srmasset.creditengine.domain.service;
 
 import com.srmasset.creditengine.domain.exception.ExchangeRateNotFoundException;
+import com.srmasset.creditengine.domain.exception.ExchangeRateProviderUnavailableException;
+import com.srmasset.creditengine.domain.fx.ExchangeRateProvider;
 import com.srmasset.creditengine.domain.math.MathConstants;
 import com.srmasset.creditengine.persistence.entity.Currency;
 import com.srmasset.creditengine.persistence.entity.ExchangeRate;
 import com.srmasset.creditengine.persistence.repository.ExchangeRateRepository;
 import java.math.BigDecimal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,18 +19,49 @@ import org.springframework.transaction.annotation.Transactional;
  * apenas USD->BRL). Um motor multimoeda de verdade precisa liquidar nos dois
  * sentidos, então aqui tentamos o par direto e, na ausência, o par inverso
  * (invertendo a taxa) antes de desistir.
+ *
+ * <p>Quando o provedor externo está habilitado, {@link #getCurrentRate}
+ * primeiro busca uma cotação fresca ({@link ExchangeRateProvider}, protegido
+ * por retry/circuit breaker) e a persiste como uma nova linha append-only
+ * (fonte {@link ExchangeRate.Source#MOCK_PROVIDER}, ver ADR 0003). Se o
+ * provedor estiver indisponível (retries esgotados ou circuito aberto),
+ * cai para a última taxa conhecida no banco — a liquidação nunca é bloqueada
+ * pela indisponibilidade de um provedor externo.
  */
 @Service
 public class ExchangeRateService {
 
-	private final ExchangeRateRepository exchangeRateRepository;
+	private static final Logger log = LoggerFactory.getLogger(ExchangeRateService.class);
 
-	public ExchangeRateService(ExchangeRateRepository exchangeRateRepository) {
+	private final ExchangeRateRepository exchangeRateRepository;
+	private final ExchangeRateProvider exchangeRateProvider;
+	private final boolean providerEnabled;
+
+	public ExchangeRateService(
+			ExchangeRateRepository exchangeRateRepository,
+			ExchangeRateProvider exchangeRateProvider,
+			@Value("${app.exchange-rate-provider.enabled:true}") boolean providerEnabled) {
 		this.exchangeRateRepository = exchangeRateRepository;
+		this.exchangeRateProvider = exchangeRateProvider;
+		this.providerEnabled = providerEnabled;
 	}
 
-	@Transactional(readOnly = true)
-	public BigDecimal findLatestRate(Currency base, Currency quote) {
+	@Transactional
+	public BigDecimal getCurrentRate(Currency base, Currency quote) {
+		if (providerEnabled) {
+			try {
+				BigDecimal freshRate = exchangeRateProvider.fetchRate(base.getCode(), quote.getCode());
+				exchangeRateRepository.save(new ExchangeRate(base, quote, freshRate, ExchangeRate.Source.MOCK_PROVIDER));
+				return freshRate;
+			} catch (ExchangeRateProviderUnavailableException e) {
+				log.warn("FX provider unavailable for {}->{}, falling back to latest stored rate",
+						base.getCode(), quote.getCode(), e);
+			}
+		}
+		return findLatestStoredRate(base, quote);
+	}
+
+	private BigDecimal findLatestStoredRate(Currency base, Currency quote) {
 		return exchangeRateRepository
 				.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(base, quote)
 				.map(ExchangeRate::getRate)

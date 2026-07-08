@@ -22,3 +22,50 @@ server:
 logging:
   level:
     com.srmasset.creditengine: DEBUG
+
+app:
+  exchange-rate-provider:
+    enabled: true
+    base-url: http://localhost:${server.port}
+    connect-timeout: 500ms
+    read-timeout: 2s
+  mock-provider:
+    failure-rate: 0.2
+    min-latency-ms: 0
+    max-latency-ms: 200
+    jitter-percent: 2.0
+    rates:
+      USD-BRL: 5.40
+
+resilience4j:
+  retry:
+    instances:
+      exchange-rate-provider:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.RestClientException
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+  circuitbreaker:
+    instances:
+      exchange-rate-provider:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers,retries
+  health:
+    circuitbreakers:
+      enabled: true
