@@ -59,4 +59,16 @@ public class Currency {
 	public OffsetDateTime getCreatedAt() {
 		return createdAt;
 	}
+
+	public void rename(String name) {
+		this.name = name;
+	}
+
+	public void deactivate() {
+		this.active = false;
+	}
+
+	public void activate() {
+		this.active = true;
+	}
 }

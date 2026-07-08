@@ -47,4 +47,16 @@ public class Assignor {
 	public boolean isActive() {
 		return active;
 	}
+
+	public void rename(String name) {
+		this.name = name;
+	}
+
+	public void deactivate() {
+		this.active = false;
+	}
+
+	public void activate() {
+		this.active = true;
+	}
 }

@@ -154,4 +154,28 @@ public class Receivable {
 		}
 		this.status = Status.SETTLED;
 	}
+
+	// Cancelamento é só permitido a partir de PENDING pelo mesmo motivo de
+	// markAsSettled(): um recebível já liquidado tem um Settlement de auditoria
+	// vinculado e não pode ser desfeito por aqui.
+	public void markAsCanceled() {
+		if (status != Status.PENDING) {
+			throw new ReceivableNotPendingException(id, status);
+		}
+		this.status = Status.CANCELED;
+	}
+
+	// Só altera dados editáveis (valor, documento, datas) e só quando ainda
+	// PENDING — assignor/tipo/moeda são a identidade do recebível e não mudam
+	// após criado; uma vez liquidado, o snapshot de auditoria em Settlement já
+	// travou os valores usados, então editar aqui não pode retroagir sobre isso.
+	public void amend(BigDecimal faceValue, String documentNumber, LocalDate issueDate, LocalDate dueDate) {
+		if (status != Status.PENDING) {
+			throw new ReceivableNotPendingException(id, status);
+		}
+		this.faceValue = faceValue;
+		this.documentNumber = documentNumber;
+		this.issueDate = issueDate;
+		this.dueDate = dueDate;
+	}
 }

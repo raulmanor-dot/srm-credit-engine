@@ -79,6 +79,43 @@ Decisões que evitam o erro clássico de ambiguidade em taxa mensal:
 - [ADR 0001](docs/adr/0001-day-count-convention.md) — convenção de contagem de prazo.
 - [ADR 0002](docs/adr/0002-bigdecimal-precision-and-fractional-power.md) — precisão numérica e potência fracionária.
 
+## Cadastros (CRUD)
+
+`CurrencyController`, `AssignorController` e `ReceivableController` expõem
+CRUD para `Currency`, `Assignor` e `Receivable`. Cada um segue o mesmo padrão
+em camadas dos demais endpoints (`Controller → Service → Repository`),
+diferente do atalho deliberado do `ReportController`.
+
+- **"Excluir" nunca é `DELETE FROM`**: `Currency` e `Assignor` têm coluna
+  `active` desde o schema original (V1/V3) — `DELETE /currencies/{id}` e
+  `DELETE /assignors/{id}` apenas desativam (`active = false`), porque ambos
+  podem estar referenciados por FK em `receivables`/`exchange_rates`/
+  `settlements`; um hard delete quebraria a integridade referencial ou, pior,
+  apagaria histórico de auditoria. Há também `POST /{id}/activate` para
+  reverter.
+- **`Receivable` não tem coluna `active`, tem `status`**: "excluir" um
+  recebível é uma transição de estado (`markAsCanceled()`), não uma remoção
+  física — `DELETE /receivables/{id}` chama esse método, que (como
+  `markAsSettled()`) só é permitido a partir de `PENDING` e devolve `409` via
+  `ReceivableNotPendingException` caso contrário. Um recebível já `SETTLED`
+  tem um `Settlement` de auditoria vinculado; cancelar por aqui retroagiria
+  sobre esse snapshot, então é bloqueado.
+- **`PUT /receivables/{id}` (`Receivable.amend`)** só altera `faceValue`,
+  `documentNumber` e as datas, e também exige `status == PENDING` pelo mesmo
+  motivo. `assignorId`/`receivableTypeId`/`faceValueCurrencyId` são a
+  identidade do recebível e não são editáveis após criado — trocar o cedente
+  ou o tipo de um recebível já cadastrado não é uma "edição", é outro
+  recebível.
+- **Código de moeda (`Currency.code`) e CPF/CNPJ (`Assignor.taxId`) são
+  imutáveis** após criados — só o nome pode ser atualizado
+  (`CurrencyUpdateRequest`/`AssignorUpdateRequest` não têm esses campos).
+  São a chave de negócio; mudar o valor seria trocar de entidade, não
+  corrigir um cadastro.
+- Conflitos (código/CPF duplicado, editar/cancelar um recebível fora de
+  `PENDING`) chegam ao `GlobalExceptionHandler` já existente e viram `409`
+  sem handler novo: `DataIntegrityViolationException` (constraint `UNIQUE`)
+  e `ReceivableNotPendingException` já eram tratados antes desta fase.
+
 ## Modelo de dados
 
 Migrations Flyway em `backend/src/main/resources/db/migration`:
@@ -137,10 +174,12 @@ Implementado neste commit:
       (ver observação sobre ambiente local abaixo)
 
 - [x] Docker Compose (app + Postgres) — ver [Rodando localmente](#rodando-localmente)
+- [x] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`) — ver
+      [Cadastros (CRUD)](#cadastros-crud): soft delete em `Currency`/
+      `Assignor`, cancelamento por transição de estado em `Receivable`
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`)
 - [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
 - [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
       Prometheus/Grafana no compose)
