@@ -32,8 +32,9 @@ espera de nível Sênior nesta avaliação.
   para potência fracionária (ver [ADR 0002](docs/adr/0002-bigdecimal-precision-and-fractional-power.md)).
 - **Frontend**: React + TypeScript + Vite, Mantine (UI + `@mantine/form`),
   TanStack Query, React Router.
-- **Observabilidade** (planejado): Logback + logstash-encoder, Micrometer +
-  Prometheus + Grafana.
+- **Observabilidade**: Logback + logstash-encoder (JSON no stdout) + MDC
+  (`requestId`/`receivableId`), Micrometer + Prometheus + Grafana (dashboard
+  provisionado) — ver [ADR 0007](docs/adr/0007-observability-logs-metrics-dashboards.md).
 - **Resiliência**: Resilience4j (retry + circuit breaker) protegendo um
   provedor de câmbio mock (`/mock-provider/rates`), com fallback para a
   última taxa conhecida no banco — ver [ADR 0006](docs/adr/0006-exchange-rate-provider-resilience.md).
@@ -124,6 +125,51 @@ chamadas, abre com 50% de falha, 10s aberto) configurados em
 Para ver o fallback em ação localmente: `FX_MOCK_FAILURE_RATE=1.0 docker
 compose up --build`, liquide um recebível cross-currency e observe o log
 `WARN` de fallback + o circuito abrindo em `/actuator/circuitbreakers`.
+
+## Observabilidade
+
+Logs, métricas de negócio e um dashboard Prometheus/Grafana pronto assim
+que o `docker compose up` sobe — ver [ADR 0007](docs/adr/0007-observability-logs-metrics-dashboards.md)
+para as decisões e alternativas consideradas.
+
+**Logs estruturados + correlação (MDC).** `logback-spring.xml` emite JSON
+no stdout (perfil padrão) via `logstash-logback-encoder`:
+
+```json
+{"@timestamp":"2026-07-08T10:00:00.123Z","level":"WARN","logger_name":"com.srmasset.creditengine.domain.service.ExchangeRateService","message":"FX provider unavailable for USD->BRL, falling back to latest stored rate","requestId":"3b1e...","receivableId":"42","application":"srm-credit-engine"}
+```
+
+Duas chaves de MDC, dois escopos: `requestId` (uma por requisição HTTP,
+setada por `CorrelationIdFilter` — reaproveita um `X-Request-Id` de entrada
+ou gera um UUID, sempre ecoado na resposta) e `receivableId` (uma por
+liquidação, setada dentro de `SettlementService.settle`) — necessário porque
+uma liquidação em lote processa vários recebíveis na mesma requisição.
+Rodando localmente fora do compose, `SPRING_PROFILES_ACTIVE=dev` troca o
+JSON por um `%pattern` legível no console.
+
+**Métricas (Micrometer → `/actuator/prometheus`).** Além das técnicas
+automáticas (`http_server_requests`, JVM, e as do Resilience4j —
+`resilience4j_circuitbreaker_*`/`resilience4j_retry_*`, que passam a ser
+publicadas assim que existe um `MeterRegistry`, sem nenhum código novo),
+três métricas de negócio:
+
+| Métrica | Tipo | Tags | O que mede |
+|---|---|---|---|
+| `settlements.count` | Counter | `currency` | liquidações concluídas, por moeda de pagamento |
+| `settlements.volume` | DistributionSummary | `currency` | volume líquido liquidado, por moeda |
+| `fx.provider.requests` | Counter | `outcome=success\|fallback` | taxa de erro do provedor de câmbio |
+
+**Prometheus + Grafana no compose.** `docker compose up --build` sobe os
+dois serviços novos, já provisionados — sem passo manual:
+
+- Prometheus em `http://localhost:9090` (`observability/prometheus/prometheus.yml`,
+  scrape de `app:8080/actuator/prometheus` a cada 5s).
+- Grafana em `http://localhost:3000` (`admin`/`admin`, sobrescrevível via
+  `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD`), com o datasource
+  Prometheus e o dashboard **"SRM Credit Engine"** já carregados
+  (`observability/grafana/`): taxa e latência p95 de HTTP, liquidações e
+  volume por moeda, taxa de erro do provedor de câmbio e estado do circuit
+  breaker/retries.
 
 ## Cadastros (CRUD)
 
@@ -304,11 +350,20 @@ Implementado neste commit:
       protegido por Resilience4j; taxa fresca persistida como linha
       append-only (`source=MOCK_PROVIDER`); indisponibilidade cai para a
       última taxa conhecida no banco, sem nunca bloquear a liquidação.
+- [x] Observabilidade (logs + métricas + Prometheus/Grafana) — ver
+      [ADR 0007](docs/adr/0007-observability-logs-metrics-dashboards.md) e
+      [Observabilidade](#observabilidade): logs estruturados em JSON
+      (`logstash-logback-encoder`) com correlação via MDC (`requestId` por
+      requisição, `receivableId` por liquidação); métricas de negócio via
+      Micrometer (`settlements.count`/`settlements.volume` por moeda,
+      `fx.provider.requests` por outcome), além das métricas técnicas
+      automáticas de HTTP/JVM e do Resilience4j (retry/circuit breaker,
+      publicadas assim que existe um `MeterRegistry`, sem código novo);
+      Prometheus + Grafana no `docker-compose.yml`, com datasource e
+      dashboard (`observability/grafana/`) já provisionados.
 
 Pendente (próximas fases, não implementado ainda):
 
-- [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
-      Prometheus/Grafana no compose)
 - [ ] Telas de cadastro (CRUD) no frontend — API já existe, sem UI própria
       ainda (fora do escopo do item 4 do enunciado)
 - [ ] Lint/formatter para o backend (Checkstyle ou Spotless) — não existe
@@ -347,6 +402,9 @@ serviço:
 `app` só inicia depois que `postgres` reporta `healthy`
 (`depends_on: condition: service_healthy`). Para derrubar tudo e limpar o
 volume de dados: `docker compose down -v`.
+
+O compose também sobe `prometheus` (`:9090`) e `grafana` (`:3000`), com
+dashboard já provisionado — ver [Observabilidade](#observabilidade).
 
 ### Testes (sem subir o compose)
 

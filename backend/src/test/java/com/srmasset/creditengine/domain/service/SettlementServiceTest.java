@@ -22,6 +22,7 @@ import com.srmasset.creditengine.persistence.entity.Settlement;
 import com.srmasset.creditengine.persistence.repository.CurrencyRepository;
 import com.srmasset.creditengine.persistence.repository.ReceivableRepository;
 import com.srmasset.creditengine.persistence.repository.SettlementRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -58,8 +59,10 @@ class SettlementServiceTest {
 	@BeforeEach
 	void setUp() {
 		PricingStrategyResolver pricingStrategyResolver = new PricingStrategyResolver(List.of(new DuplicataMercantilStrategy()));
+		SettlementMetricsRecorder settlementMetricsRecorder = new SettlementMetricsRecorder(new SimpleMeterRegistry());
 		settlementService = new SettlementService(
-				receivableRepository, currencyRepository, settlementRepository, pricingStrategyResolver, exchangeRateService);
+				receivableRepository, currencyRepository, settlementRepository, pricingStrategyResolver,
+				exchangeRateService, settlementMetricsRecorder);
 	}
 
 	private Receivable newReceivable(Currency faceCurrency, LocalDate referenceDate) {

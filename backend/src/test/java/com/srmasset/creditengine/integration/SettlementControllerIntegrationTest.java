@@ -2,10 +2,12 @@ package com.srmasset.creditengine.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.srmasset.creditengine.application.config.CorrelationIdFilter;
 import com.srmasset.creditengine.application.dto.SettlementRequest;
 import com.srmasset.creditengine.domain.pricing.ReceivableTypeCode;
 import com.srmasset.creditengine.domain.service.SettlementService;
@@ -20,6 +22,7 @@ import com.srmasset.creditengine.persistence.repository.CurrencyRepository;
 import com.srmasset.creditengine.persistence.repository.ReceivableRepository;
 import com.srmasset.creditengine.persistence.repository.ReceivableTypeRepository;
 import com.srmasset.creditengine.persistence.repository.SettlementRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -57,6 +60,9 @@ class SettlementControllerIntegrationTest extends AbstractIntegrationTest {
 	@Autowired
 	private SettlementService settlementService;
 
+	@Autowired
+	private MeterRegistry meterRegistry;
+
 	private Currency brl;
 	private ReceivableType duplicata;
 
@@ -79,10 +85,13 @@ class SettlementControllerIntegrationTest extends AbstractIntegrationTest {
 
 		SettlementRequest request = new SettlementRequest(receivable.getId(), "BRL", new BigDecimal("2.0"), referenceDate);
 
+		double countBefore = meterRegistry.get("settlements.count").tag("currency", "BRL").counter().count();
+
 		mockMvc.perform(post("/settlements")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
+				.andExpect(header().exists(CorrelationIdFilter.REQUEST_ID_HEADER))
 				.andExpect(jsonPath("$.receivableId").value(receivable.getId()))
 				.andExpect(jsonPath("$.paymentCurrencyCode").value("BRL"));
 
@@ -92,6 +101,9 @@ class SettlementControllerIntegrationTest extends AbstractIntegrationTest {
 
 		Receivable reloaded = receivableRepository.findById(receivable.getId()).orElseThrow();
 		assertThat(reloaded.getStatus()).isEqualTo(Receivable.Status.SETTLED);
+
+		double countAfter = meterRegistry.get("settlements.count").tag("currency", "BRL").counter().count();
+		assertThat(countAfter).isEqualTo(countBefore + 1);
 	}
 
 	@Test

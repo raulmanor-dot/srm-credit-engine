@@ -14,6 +14,7 @@ import com.srmasset.creditengine.domain.fx.ExchangeRateProvider;
 import com.srmasset.creditengine.persistence.entity.Currency;
 import com.srmasset.creditengine.persistence.entity.ExchangeRate;
 import com.srmasset.creditengine.persistence.repository.ExchangeRateRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
@@ -31,12 +32,16 @@ class ExchangeRateServiceTest {
 	@Mock
 	private ExchangeRateProvider exchangeRateProvider;
 
+	private final ExchangeRateMetricsRecorder exchangeRateMetricsRecorder =
+			new ExchangeRateMetricsRecorder(new SimpleMeterRegistry());
+
 	private final Currency usd = new Currency("USD", "Dolar Americano");
 	private final Currency brl = new Currency("BRL", "Real Brasileiro");
 
 	@Test
 	void returnsDirectRateWhenPairExistsInThatDirection() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false);
+		ExchangeRateService service =
+				new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
 		ExchangeRate rate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
 		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
 				.thenReturn(Optional.of(rate));
@@ -49,7 +54,7 @@ class ExchangeRateServiceTest {
 
 	@Test
 	void invertsRateWhenOnlyInversePairExists() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false);
+		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
 		ExchangeRate rate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
 		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(brl, usd))
 				.thenReturn(Optional.empty());
@@ -64,7 +69,7 @@ class ExchangeRateServiceTest {
 
 	@Test
 	void throwsWhenNeitherDirectionExistsAndProviderDisabled() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false);
+		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, false, exchangeRateMetricsRecorder);
 		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
 				.thenReturn(Optional.empty());
 		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(brl, usd))
@@ -76,7 +81,7 @@ class ExchangeRateServiceTest {
 
 	@Test
 	void persistsProviderRateAsMockProviderRowAndReturnsIt() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true);
+		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
 		when(exchangeRateProvider.fetchRate("USD", "BRL")).thenReturn(new BigDecimal("5.500000"));
 
 		BigDecimal result = service.getCurrentRate(usd, brl);
@@ -87,7 +92,7 @@ class ExchangeRateServiceTest {
 
 	@Test
 	void fallsBackToLatestStoredRateWhenProviderUnavailable() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true);
+		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
 		when(exchangeRateProvider.fetchRate("USD", "BRL"))
 				.thenThrow(new ExchangeRateProviderUnavailableException("USD", "BRL", new RuntimeException("boom")));
 		ExchangeRate storedRate = new ExchangeRate(usd, brl, new BigDecimal("5.400000"), ExchangeRate.Source.MANUAL);
@@ -102,7 +107,7 @@ class ExchangeRateServiceTest {
 
 	@Test
 	void throwsExchangeRateNotFoundWhenProviderDownAndNoStoredRate() {
-		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true);
+		ExchangeRateService service = new ExchangeRateService(exchangeRateRepository, exchangeRateProvider, true, exchangeRateMetricsRecorder);
 		when(exchangeRateProvider.fetchRate("USD", "BRL"))
 				.thenThrow(new ExchangeRateProviderUnavailableException("USD", "BRL", new RuntimeException("boom")));
 		when(exchangeRateRepository.findFirstByBaseCurrencyAndQuoteCurrencyOrderByValidFromDesc(usd, brl))
