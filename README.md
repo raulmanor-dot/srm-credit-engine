@@ -24,6 +24,8 @@ espera de nível Sênior nesta avaliação.
 ## Stack
 
 - **Backend**: Java 21, Spring Boot 3.3, Gradle (wrapper), PostgreSQL, Flyway.
+- **Containerização**: Docker multi-stage (`backend/Dockerfile`) + Docker
+  Compose (app + Postgres, healthchecks).
 - **Precisão numérica**: `BigDecimal` + [big-math](https://github.com/eobermuhlner/big-math)
   para potência fracionária (ver [ADR 0002](docs/adr/0002-bigdecimal-precision-and-fractional-power.md)).
 - **Frontend** (planejado): React + TypeScript + Vite, TanStack Query, React
@@ -134,18 +136,43 @@ Implementado neste commit:
       liquidação em lote com falha parcial, e o relatório
       (ver observação sobre ambiente local abaixo)
 
+- [x] Docker Compose (app + Postgres) — ver [Rodando localmente](#rodando-localmente)
+
 Pendente (próximas fases, não implementado ainda):
 
 - [ ] Controllers de CRUD (`Receivable`, `Assignor`, `Currency`)
 - [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
-- [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio)
-- [ ] Docker Compose (app, Postgres, Prometheus, Grafana)
+- [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
+      Prometheus/Grafana no compose)
 - [ ] Frontend (React + TS + Vite)
 - [ ] CI/CD (GitHub Actions: lint, test, build)
 
-## Rodando localmente (parcial)
+## Rodando localmente
 
-Ainda não há Docker Compose nem banco fixo configurado. Por enquanto:
+### Via Docker Compose (aplicação completa)
+
+Requer apenas Docker. Sobe Postgres e a aplicação (build multi-stage do
+`backend/Dockerfile`, sem precisar de Java/Gradle instalados na máquina):
+
+```bash
+docker compose up --build
+```
+
+A API fica disponível em `http://localhost:8080` (ex.: `POST
+/simulations`) e o Postgres em `localhost:5432` (`srm`/`srm`,
+banco `srm_credit_engine` — sobrescrevível via `.env`, ver `.env.example`).
+As migrations Flyway rodam automaticamente no boot. Healthcheck de cada
+serviço:
+
+- `postgres`: `pg_isready`.
+- `app`: `GET /actuator/health` (exposto por `spring-boot-starter-actuator`,
+  já presente no `build.gradle`).
+
+`app` só inicia depois que `postgres` reporta `healthy`
+(`depends_on: condition: service_healthy`). Para derrubar tudo e limpar o
+volume de dados: `docker compose down -v`.
+
+### Testes (sem subir o compose)
 
 ```bash
 cd backend
@@ -155,10 +182,12 @@ cd backend
 Isso compila e roda os 10 testes unitários (sem Spring context nem banco) e
 os 3 testes de integração em `src/test/.../integration` (`SimulationController`,
 optimistic locking, constraint unique), que sobem um Postgres real via
-Testcontainers. A aplicação ainda não sobe de ponta a ponta fora de teste
-porque depende de um `docker-compose.yml` — isso entra na próxima fase.
+Testcontainers — mecanismo independente do `docker-compose.yml` acima (o
+Testcontainers gerencia seu próprio container efêmero por execução de
+teste).
 
-**Nota sobre ambiente Windows local (não afeta CI/Linux):** nesta máquina de
+**Nota sobre ambiente Windows local (afeta só Testcontainers, não o
+`docker compose up` acima nem CI/Linux):** nesta máquina de
 desenvolvimento, o Docker Desktop 4.81 expõe um proxy de compatibilidade
 (named pipe e socket Unix) que devolve uma resposta stub para chamadas
 versionadas da API — isso quebra a negociação de versão do `docker-java`
