@@ -1,5 +1,7 @@
 # SRM Credit Engine
 
+[![CI](https://github.com/raulmanor-dot/srm-credit-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/raulmanor-dot/srm-credit-engine/actions/workflows/ci.yml)
+
 Plataforma de cessão de crédito multimoedas (FIDC): cadastro de recebíveis,
 precificação (valor presente) e liquidação, com auditabilidade de todas as
 taxas aplicadas.
@@ -33,7 +35,9 @@ espera de nível Sênior nesta avaliação.
 - **Observabilidade** (planejado): Logback + logstash-encoder, Micrometer +
   Prometheus + Grafana.
 - **Resiliência** (planejado): Resilience4j.
-- **CI/CD** (planejado): GitHub Actions com Testcontainers.
+- **CI/CD**: GitHub Actions (`.github/workflows/ci.yml`) — job `backend`
+  (`./gradlew test` com Testcontainers) + job `frontend` (lint + build), ver
+  [CI/CD](#cicd).
 
 ## Arquitetura
 
@@ -248,15 +252,19 @@ Implementado neste commit:
       cedente inline) e liquidar direto do painel, sem precisar de `curl` —
       fluxo completo (criar cedente → criar recebível → simular → liquidar
       → aparece na grid) verificado no navegador
+- [x] CI/CD (GitHub Actions) — ver [CI/CD](#cicd): job `backend`
+      (`./gradlew test`, suíte completa) + job `frontend` (lint + typecheck
+      + build), disparados em push/PR contra `main`
 
 Pendente (próximas fases, não implementado ainda):
 
 - [ ] Mock de provedor de câmbio + Resilience4j (retry/circuit breaker/fallback)
 - [ ] Observabilidade (logs JSON + MDC + Micrometer + métrica de negócio,
       Prometheus/Grafana no compose)
-- [ ] CI/CD (GitHub Actions: lint, test, build)
 - [ ] Telas de cadastro (CRUD) no frontend — API já existe, sem UI própria
       ainda (fora do escopo do item 4 do enunciado)
+- [ ] Lint/formatter para o backend (Checkstyle ou Spotless) — não existe
+      ainda, ver [CI/CD](#cicd)
 
 ## Rodando localmente
 
@@ -321,6 +329,33 @@ abrir a 3ª conexão JDBC em sequência) — **cada teste individualmente passa
 de forma consistente** (verificado repetidas vezes isolado via `--tests`).
 Em CI real (GitHub Actions, Linux nativo, Docker sem essa camada de
 compatibilidade) esse problema não é esperado.
+
+## CI/CD
+
+`.github/workflows/ci.yml`, dois jobs independentes, disparados em push
+para `main` e em todo Pull Request contra `main`:
+
+- **`backend`**: `./gradlew test` — suíte completa (unitários +
+  integração via Testcontainers) em `ubuntu-latest`. Ao contrário desta
+  máquina de desenvolvimento Windows (ver observação acima sobre
+  Podman/WSL2), o runner tem Docker nativo — a flakiness observada
+  localmente é especificamente da camada de compatibilidade do Docker
+  Desktop no Windows, não esperada em CI. Relatórios de teste sobem como
+  artefato (`actions/upload-artifact`, 7 dias de retenção) mesmo quando o
+  job falha (`if: always()`), para inspecionar sem precisar reproduzir
+  localmente.
+- **`frontend`**: `npm run lint` (oxlint) + `npm run build` (`tsc -b` +
+  `vite build`) em `ubuntu-latest`. Falha de typecheck ou de lint quebra
+  o build, não só o `vite build` em si.
+- Sem lint configurado para o backend (sem Checkstyle/Spotless no
+  `build.gradle`) — adicionar um agora reformataria todo o código
+  existente num PR que deveria ser só infraestrutura de CI; fica como
+  débito técnico registrado, não decisão silenciosa.
+- Cache: `actions/setup-java` (`cache: gradle`) e `actions/setup-node`
+  (`cache: npm`, `cache-dependency-path: frontend/package-lock.json`) —
+  builds subsequentes reaproveitam dependências já baixadas.
+- Nenhum job de deploy: o enunciado pede o pipeline (lint/test/build),
+  não hospedagem — não há ambiente de produção para publicar.
 
 ## Estratégia de Git
 
