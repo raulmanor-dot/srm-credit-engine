@@ -524,8 +524,10 @@ se paga aqui.
   - `v0.3.0` — dockerizado (Docker Compose local).
   - `v0.4.0` — mock de provedor de câmbio + Resilience4j (retry/circuit
     breaker/fallback).
-  - `v1.0.0` será a tag da entrega final, quando observabilidade,
-    resiliência, frontend e CI/CD estiverem completos.
+  - `v1.0.0` — entrega final do escopo Sênior: observabilidade (logs +
+    métricas + Grafana), resiliência (retry/circuit breaker), frontend
+    (Painel do Operador + Grid de Transações), CI/CD, massa de dados de
+    demonstração e lint/formatter (Spotless) no backend.
 
 ## Decisões de arquitetura (ADRs)
 
