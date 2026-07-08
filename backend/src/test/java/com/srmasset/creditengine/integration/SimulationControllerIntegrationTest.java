@@ -57,7 +57,7 @@ class SimulationControllerIntegrationTest extends AbstractIntegrationTest {
 		Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
 		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
 				.orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa Teste", "11222333000144"));
+		Assignor assignor = assignorRepository.save(new Assignor("Empresa Teste", "11222333000188"));
 
 		LocalDate referenceDate = LocalDate.of(2026, 7, 7);
 		LocalDate dueDate = referenceDate.plusDays(30);

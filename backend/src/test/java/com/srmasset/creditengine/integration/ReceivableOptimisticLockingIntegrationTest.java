@@ -46,7 +46,7 @@ class ReceivableOptimisticLockingIntegrationTest extends AbstractIntegrationTest
 		Currency brl = currencyRepository.findByCode("BRL").orElseThrow();
 		ReceivableType duplicata = receivableTypeRepository.findByCode(ReceivableTypeCode.DUPLICATA_MERCANTIL)
 				.orElseThrow();
-		Assignor assignor = assignorRepository.save(new Assignor("Empresa Concorrencia", "22333444000155"));
+		Assignor assignor = assignorRepository.save(new Assignor("Empresa Concorrencia", "22333444000122"));
 
 		LocalDate today = LocalDate.now();
 		Receivable saved = receivableRepository.save(new Receivable(
