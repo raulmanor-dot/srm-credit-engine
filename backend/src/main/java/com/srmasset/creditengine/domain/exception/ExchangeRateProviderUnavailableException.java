@@ -7,6 +7,8 @@ package com.srmasset.creditengine.domain.exception;
  */
 public class ExchangeRateProviderUnavailableException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public ExchangeRateProviderUnavailableException(
             String baseCurrencyCode, String quoteCurrencyCode, Throwable cause) {
         super(

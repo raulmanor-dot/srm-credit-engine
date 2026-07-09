@@ -19,6 +19,10 @@ java {
 	}
 }
 
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs << '-Xlint:all'
+}
+
 repositories {
 	mavenCentral()
 }
