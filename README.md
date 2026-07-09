@@ -570,6 +570,12 @@ se paga aqui.
   ver [docs/crisis-simulation.md](docs/crisis-simulation.md) para o incidente
   completo, como passou pelo CI e como foi detectado.
 
+## Critérios de aceite
+
+Requisito não funcional 5.2: critérios de usabilidade, segurança, desempenho e
+escalabilidade — cada um apontando para a evidência concreta no repositório —
+em [docs/acceptance-criteria.md](docs/acceptance-criteria.md).
+
 ## Decisões de arquitetura (ADRs)
 
 Ver [`docs/adr/`](docs/adr/). Cada decisão não-óbvia do motor de precificação
