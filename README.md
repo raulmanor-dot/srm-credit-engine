@@ -279,6 +279,12 @@ para a origem do frontend (`app.cors.allowed-origin`, default
 
 ## Modelo de dados
 
+**Scripts DDL** (item 7 do enunciado): as migrations Flyway abaixo *são* o DDL executável
+— `CREATE TABLE`, constraints (`CHECK`, `UNIQUE`, `FOREIGN KEY`) e o trigger append-only
+de câmbio, em `backend/src/main/resources/db/migration/`. Não há um dump SQL separado
+porque as migrations já são a fonte de verdade versionada do schema; rodá-las (via
+`docker compose up` ou `./gradlew test`) recria o banco do zero.
+
 Migrations Flyway em `backend/src/main/resources/db/migration`:
 
 | Migration | Tabela | Observação |
